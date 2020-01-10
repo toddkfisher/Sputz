@@ -1,0 +1,29 @@
+#+OPTIONS: toc:nil
+* Technique for backtracking during a parse
+** For example, the grammar rules:
+   #+BEGIN_EXAMPLE
+   assign-or-tuple-expr = assign-expr
+                        | tuple-expr
+
+   assign-expr          = pattern-tuple ':=' assign-or-tuple-expr
+
+   tuple-expr           = ...
+   #+END_EXAMPLE
+   While parsing an =assign-or-tuple-expr= we must be prepared to backtrack. Since a
+   =pattern-tuple= might look like a =tuple-expr= we don't know if we're parsing an
+   =assign-expr= or a =tuple-expr=. So if =assign-expr= fails we must back up in the
+   source text and try to parse a =tuple-expr=.  We might have an implementation:
+   #+BEGIN_SRC
+   PARSE_TREE_NODE *parse_assign_or_tuple_expr(PARSE_STATE *pstate)
+   {
+     // Save current position of source text in pstate
+     // push g_abort onto g_jmpbuf_stack
+     if (PARSE_ERROR == setjmp(g_abort)) {
+       // Backtrack to saved position.
+       g_abort = // pop g_jmpbuf_stack
+       result = parse_tuple_expr(...);
+     }
+     result = parse_assign_expr(...);
+     g_abort = // pop g_jmpbuf_stack
+   }
+   #+END_SRC
