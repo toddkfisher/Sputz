@@ -221,8 +221,11 @@ PARSE_TREE_NODE *parse_seq_expr(PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
-  DBG_STUB(result = parse_number(pstate));
-  //ERR_NYI(pstate);
+  if (L_IF_KW == pstate->pst_lookahead.lx_type) {
+    result = parse_if_expr(pstate);
+  } else {
+    result = parse_assign_or_tuple_expr(pstate);
+  }
   return result;
 }
 

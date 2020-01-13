@@ -9,7 +9,7 @@ expr                   = (  ifExpr
 assignOrTupleExpr       = assignExpr
                          | tupleExpr
 
-assignExpr             = patternTuple ':=' assignOrTupleExpr
+assignExpr             = varName ':=' assignOrTupleExpr
 
 ifExpr                 = 'if' assignExpr 'then' assignExpr 'else' assignExpr
 

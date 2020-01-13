@@ -110,19 +110,3 @@ struct PARSE_STATE {
   // Error message if pst_status != PSTAT_OK.  Empty otherwise.
   char pst_err_msg[MAX_STR];
 };
-
-// This struct is used to capture a point in the parse for potential backtracking.
-typestruct(PARSE_BACKTRACK_STATE);
-struct PARSE_BACKTRACK_STATE {
-  PARSE_STATE bt_parse_state;
-  GEN_READ_POSITION bt_input_pos;
-};
-
-#define xEXPECT_LEXICAL_UNIT(expected, scanned, pstate, errmsg, label) \
-  do {                                                                \
-    if (expected != scanned) {                                        \
-      strcpy(pstate->pst_err_msg, errmsg);                            \
-      pstate->pst_status = S_PARSE_ERROR;                             \
-      goto label;                                                     \
-    }                                                                 \
-  } while (0)
