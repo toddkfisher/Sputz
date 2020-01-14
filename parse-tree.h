@@ -40,14 +40,14 @@ struct PARSE_TREE_NODE {
     struct {
       // I wonder if anyone will write 'outer' more than 4294967296 times?
       uint32_t nd_outer_count;
-      char *nd_var_name;
+      char *nd_pvar_name;
     };
     // NT_NUM_CONST
     // NT_PATT_NUM_CONST
     double nd_num_const;
     // NT_SYM_CONST
     // NT_PATT_SYM
-    char *nd_sym_name;
+    char *nd_psym_name;
     // NT_TAGGED_TUPLE, NT_PATT_TAGGED_TUPLE
     struct {
       PARSE_TREE_NODE *nd_tagged_sym;

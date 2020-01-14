@@ -5,6 +5,8 @@ char *g_lex_unit_names[] ={
 #include "enum-L.h"
 };
 
+STRTAB *g_pstrtab = NULL;
+
 void lx_print(LEX_UNIT *plx)
 {
   printf("LEX_UNIT {\n");
@@ -16,10 +18,10 @@ void lx_print(LEX_UNIT *plx)
       printf("  lx_number == %g,\n", plx->lx_number);
       break;
     case L_VAR_NAME:
-      printf("  lx_var_name == \"%s\",\n", plx->lx_var_name);
+      printf("  lx_var_name == \"%s\",\n", plx->lx_pvar_name);
       break;
     case L_SYMBOL:
-      printf("  lx_sym == \"%s\",\n", plx->lx_sym);
+      printf("  lx_sym == \"%s\",\n", plx->lx_psym_name);
       break;
     default:
       break;
@@ -58,7 +60,7 @@ struct {
 
 bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
 {
-  bool retval = false;
+  bool retval = LX_UNKNOWN_CHAR;
   char ch;
   lx_skip_whitespace(pinput);
   plx->lx_line_n = pinput->gr_line_n;
@@ -66,20 +68,19 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
   if (gr_get_char(pinput, &ch)) {
     if (';' == ch) {
       plx->lx_type = L_SEQ;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('+' == ch) {
       plx->lx_type = L_PLUS;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('-' == ch) {
       plx->lx_type = L_MINUS;
     } else if ('`' == ch) {
       plx->lx_type = L_CLOSUREIZE;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('%' == ch) {
       plx->lx_type = L_MOD;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('*' == ch) {
-      // maybe ...
       plx->lx_type = L_TIMES;
       if (gr_get_char(pinput, &ch)) {
         if ('*' == ch) {
@@ -87,14 +88,14 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
         } else if (!gr_eof(pinput)) {
           gr_putback_char(pinput, ch);
         }
-        retval = true;
+        retval = LX_SCAN_OK;
       }
     } else if ('{' == ch) {
       plx->lx_type = L_FN_BEGIN;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('}' == ch) {
       plx->lx_type = L_FN_END;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if (',' == ch) {
       plx->lx_type = L_TUPLECAT;
       retval = true;
@@ -107,16 +108,16 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
         }
         plx->lx_type = L_SUCH_THAT;
       }
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('=' == ch) {
       if (gr_get_char(pinput, &ch) && '>' == ch) {
         plx->lx_type = L_RESULT;
-        retval = true;
+        retval = LX_SCAN_OK;
       }
     } else if (':' == ch) {
       if (gr_get_char(pinput, &ch) && '=' == ch) {
         plx->lx_type = L_ASSIGN;
-        retval = true;
+        retval = LX_SCAN_OK;
       }
     } else if ('~' == ch || isdigit(ch)) {
       // L_NUMBER
@@ -163,7 +164,7 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
       }
       plx->lx_type = L_NUMBER;
       plx->lx_number = mant_sign*(int_part + frac_part)*pow(10.0, exp_sign*exp_part);
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if (isalpha(ch)) {
       // L_SYMBOL or L_VAR_NAME or L_..._KW
       uint32_t n_chars = 0;
@@ -176,17 +177,20 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
         }
         n_chars += 1;
       } while (gr_get_char(pinput, &ch) && IS_NAME_CHAR(ch));
-      if (n_chars < MAX_STR) {
+      if (n_chars < MAX_STR - 1) {
         name[n_chars] = '\0';
       }
       if (EOF != ch && !gr_eof(pinput)) {
         gr_putback_char(pinput, ch);
       }
       if (isupper(name[0])) {
-        strcpy(plx->lx_sym, name);
-        plx->lx_type = L_SYMBOL;
+        if (ST_UNABLE_TO_INSERT == strtab_insert(g_pstrtab, name, &plx->lx_psym_name)) {
+          retval = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
+        } else {
+          plx->lx_type = L_SYMBOL;
+          retval = LX_SCAN_OK;
+        }
       } else {
-        strcpy(plx->lx_var_name, name);
         plx->lx_type = L_VAR_NAME;
         for (uint8_t i = 0; L_VAR_NAME == plx->lx_type && !STREQ("", g_keywords[i].kw_name); ++i) {
           if (STREQ(name, g_keywords[i].kw_name)) {
@@ -194,14 +198,20 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
           }
         }
       }
-      retval = true;
+      if (L_VAR_NAME == plx->lx_type) {
+        if (ST_UNABLE_TO_INSERT == strtab_insert(g_pstrtab, name, &plx->lx_pvar_name)) {
+          retval = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
+        } else {
+          retval = LX_SCAN_OK;
+        }
+      }
     }
   } else if (gr_eof(pinput)) {
     plx->lx_type = L_EOF;
-    retval = true;
+    retval = LX_SCAN_OK;
   } else {
     plx->lx_type = L_UNKNOWN;
-    retval = false;
+    retval = LX_UNKNOWN_CHAR;
   }
 #if defined(DEBUG)
   if (retval) {
@@ -253,7 +263,7 @@ int main(int argc, char **argv)
   GEN_READ gr;
   LEX_UNIT lx;
   init_gr(*argv[1], argv[2], &gr);
-  while (lx_scan_next(&gr, &lx)) {
+  while (LX_SCAN_OK == lx_scan_next(&gr, &lx)) {
     lx_print(&lx);
   }
   gr_close(&gr);

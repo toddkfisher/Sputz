@@ -5,6 +5,8 @@ char *node_type_names[] = {
 #include "enum-PT.h"
 };
 
+extern STRTAB *g_pstrtab;
+
 #define IND do { for (int i = 0; i < indent; ++i) { printf(" "); } } while (0)
 
 #define BINARY_OP_CASE(node_type)                         \
@@ -63,14 +65,14 @@ void parse_tree_print(PARSE_TREE_NODE *p, uint8_t indent)
         parse_tree_print(p->nd_assign_expr, indent + 2);
         break;
       case NT_VAR_REF:
-        IND; printf("-nd_var_name: %s\n", p->nd_var_name);
+        IND; printf("-nd_var_name: %s\n", p->nd_pvar_name);
         IND; printf("-nd_outer_count: %u\n", p->nd_outer_count);
         break;
       case NT_NUM_CONST:
         IND; printf("-nd_num_const : %g\n", p->nd_num_const);
         break;
       case NT_SYM_CONST:
-        IND; printf("-%s\n", p->nd_sym_name);
+        IND; printf("-%s\n", p->nd_psym_name);
         break;
       case NT_TAGGED_TUPLE:
         IND; printf("-nd_tagged_sym:\n");
@@ -150,7 +152,7 @@ extern char *g_lex_unit_names[];
 // Scan the next lexical unit and store in PARSE_STATE
 void parse_scan_lx_unit(PARSE_STATE *pstate)
 {
-  if (!lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead)) {
+  if (LX_SCAN_OK != lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead)) {
     pstate->pst_status = S_LEX_ERROR;
     strcpy(pstate->pst_err_msg, "Scanning error. Unable to read.");
     longjmp(g_abort, 1);
@@ -233,7 +235,11 @@ PARSE_TREE_NODE *parse_expr(PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_assign_or_tuple_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
+  if (L_VAR_NAME == pstate->pst_lookahead.lx_type) {
+    result = parse_assign_expr(pstate);
+  } else {
+    result = parse_tuple_expr(pstate);
+  }
   return result;
 }
 
@@ -381,12 +387,18 @@ PARSE_TREE_NODE *parse_pattern_data_constructor(PARSE_STATE *pstate)
   return result;
 }
 
-bool parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppmem)
+bool parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppmem,
+  STRTAB **ppstrtab)
 {
-  bool retval = true;
+  bool result = true;
   init_gr(test_type, arg, &pstate->pst_input);
-  pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead) ? S_OK : S_LEX_ERROR;
-  return S_OK == pstate->pst_status && (NULL != (*ppmem = stkalloc_new_arena(1024)));
+  result = S_OK == pstate->pst_status;
+  result = result && (NULL != (*ppmem = stkalloc_new_arena(MIB(1))));
+  // Need stringtable before lexing can begin.
+  result = result && (NULL != (*ppstrtab = strtab_new(*ppmem)));
+  pstate->pst_status = (LX_SCAN_OK == lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead)) ? S_OK : S_LEX_ERROR;
+  result = result && (pstate->pst_status != S_LEX_ERROR);
+  return result;
 }
 
 void parse_fin(PARSE_STATE *pstate)
@@ -443,7 +455,7 @@ int main(int argc, char **argv)
   if (argc < 3 || !STREQ(argv[1], "-s")) {
     fprintf(stderr, "Usage: %s -s '<text>'\n", argv[0]);
     retval = 1;
-  } else if (!parse_init(&pstate, argv[1][1], argv[2], &g_pmem)) {
+  } else if (!parse_init(&pstate, argv[1][1], argv[2], &g_pmem, &g_pstrtab)) {
     fprintf(stderr, "Initialization failure.\n");
     retval = 2;
   } else if (!setjmp(g_abort)) {

@@ -18,3 +18,10 @@ struct STRTAB {
   uint32_t st_next_char;
   char st_strings[STR_AREA_SIZE];
 };
+
+// "ST" == "strtab"
+enum {
+  ST_NEW_STR_INSERTED = 0,
+  ST_STR_EXISTS = 1,
+  ST_UNABLE_TO_INSERT = 2,
+};

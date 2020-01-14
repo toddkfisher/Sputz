@@ -15,8 +15,15 @@ struct LEX_UNIT {
     // L_NUMBER
     double lx_number;
     // L_VAR_NAME
-    char lx_var_name[MAX_STR];
+    char *lx_pvar_name;
     // L_SYMBOL
-    char lx_sym[MAX_STR];
+    char *lx_psym_name;
   };
+};
+
+// "LX_" == "lex status"
+enum {
+  LX_SCAN_OK = 0,
+  LX_UNKNOWN_CHAR = 1,
+  LX_UNABLE_TO_SAVE_NAME_OR_STRING = 2
 };

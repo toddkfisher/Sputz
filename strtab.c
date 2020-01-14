@@ -60,24 +60,17 @@ static bool strtab_exists(STRTAB *st, char *s)
   return result;
 }
 
-// "ST" == "strtab"
-enum {
-  ST_UNABLE_TO_INSERT = 0,
-  ST_NEW_STR_INSERTED = 1,
-  ST_STR_EXISTS = 2
-};
 
-uint8_t strtab_insert(STRTAB *st, char *s)
+uint8_t strtab_insert(STRTAB *st, char *s, char **ppstr)
 {
   uint32_t h;
   STRREC *pnewrec;
   STRREC *prec;
-  char *pstr;
   uint32_t result;
   result = ST_UNABLE_TO_INSERT;
   if (!strtab_exists(st, s)) {
     ABORT_ON_NULL(pnewrec = strtab_new_rec(st), MEM_OVERFLOW0);
-    ABORT_ON_NULL(pstr = strtab_insert_string(st, s), MEM_OVERFLOW1);
+    ABORT_ON_NULL(*ppstr = strtab_insert_string(st, s), MEM_OVERFLOW1);
     pnewrec->sr_next = NULL;
     st->st_htab[h] = pnewrec;
     result = ST_NEW_STR_INSERTED;

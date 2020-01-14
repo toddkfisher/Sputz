@@ -121,3 +121,7 @@
 #  define DBG_ENTER do { } while (0)
 #  define DBG_LEAVE do { } while (0)
 #endif
+
+#define KIB(n) ((n)*1024)
+#define MIB(n) ((n)*1048576)
+#define GIB(n) ((n)*4294967296)
