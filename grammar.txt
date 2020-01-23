@@ -3,8 +3,10 @@ repl                   = (seqexpr nl)*
 seqExpr                =  expr  (';'  expr )*
 
 expr                   = (  ifExpr
-                          | assignOrTupleExpr
+                          | simpleExpr
                          )
+
+simpleExpr             =
 
 assignOrTupleExpr       = assignExpr
                          | tupleExpr

@@ -58,14 +58,15 @@ struct {
   "",      0
 };
 
-bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
+uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
 {
-  bool retval = LX_UNKNOWN_CHAR;
+  uint32_t retval = LX_UNKNOWN_CHAR;
   char ch;
   lx_skip_whitespace(pinput);
   plx->lx_line_n = pinput->gr_line_n;
   plx->lx_col_n = pinput->gr_col_n;
   if (gr_get_char(pinput, &ch)) {
+    DBG_PRINT_VAR(ch, CHAR);
     if (';' == ch) {
       plx->lx_type = L_SEQ;
       retval = LX_SCAN_OK;
@@ -74,6 +75,7 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
       retval = LX_SCAN_OK;
     } else if ('-' == ch) {
       plx->lx_type = L_MINUS;
+      retval = LX_SCAN_OK;
     } else if ('`' == ch) {
       plx->lx_type = L_CLOSUREIZE;
       retval = LX_SCAN_OK;
@@ -98,7 +100,7 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
       retval = LX_SCAN_OK;
     } else if (',' == ch) {
       plx->lx_type = L_TUPLECAT;
-      retval = true;
+      retval = LX_SCAN_OK;
     } else if ('!' == ch) {
       if (gr_get_char(pinput, &ch) && '!' == ch) {
         plx->lx_type = L_GUARD;
@@ -214,7 +216,7 @@ bool lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
     retval = LX_UNKNOWN_CHAR;
   }
 #if defined(DEBUG)
-  if (retval) {
+  if (!scode_is_error(retval)) {
     printf("Lexical unit scanned:\n");
     lx_print(plx);
   } else {

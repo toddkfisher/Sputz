@@ -13,6 +13,9 @@ ARENA *stkalloc_new_arena(size_t arena_size)
       retval->ar_pnext = retval->ar_pbase;
       zero_mem(retval->ar_pbase, arena_size);
       retval->ar_plast = retval->ar_pbase + arena_size - 1;
+      retval->ar_n_allocations = 0;
+      retval->ar_n_checkpoints = 0;
+      retval->ar_n_rollbacks = 0;
     } else {
       free(retval);
       retval = NULL;
@@ -21,9 +24,10 @@ ARENA *stkalloc_new_arena(size_t arena_size)
   return retval;
 }
 
-void *stkalloc_get_checkpoint(ARENA *parena)
+void *stkalloc_get_checkpoint(ARENA *par)
 {
-  return parena->ar_pnext;
+  par->ar_n_checkpoints += 1;
+  return par->ar_pnext;
 }
 
 bool stkalloc_rollback(ARENA *par, void *chkpt)
@@ -32,6 +36,7 @@ bool stkalloc_rollback(ARENA *par, void *chkpt)
   if (chkpt >= par->ar_pbase &&
       chkpt <= par->ar_plast &&
       chkpt < par->ar_pnext) {
+    par->ar_n_rollbacks += 1;
     par->ar_pnext = chkpt;
     retval = true;
   }
@@ -41,9 +46,18 @@ bool stkalloc_rollback(ARENA *par, void *chkpt)
 void *stkalloc_get_mem(ARENA *par, size_t mem_size)
 {
   void *retval = NULL;
+#if 0
+  DBG_PRINT_VAR(((long) par->ar_pnext), LONG);
+  DBG_PRINT_VAR(((long) mem_size), LONG);
+  DBG_PRINT_VAR(((long) par->ar_plast), LONG);
+  DBG_PRINT_VAR(((long) par->ar_plast - (long) par->ar_pbase), LONG);
+  DBG_PRINT_VAR(((long) par->ar_pnext + mem_size), LONG);
+  assert(par->ar_pnext + mem_size <= par->ar_plast);
+#endif
   if (par->ar_pnext + mem_size <= par->ar_plast) {
     retval = par->ar_pnext;
     par->ar_pnext += mem_size;
+    par->ar_n_allocations += 1;
   }
   return retval;
 }
@@ -59,10 +73,14 @@ void *stkalloc_free_arena(ARENA *par)
 void stkalloc_print_stats(ARENA *par)
 {
   printf("ARENA: %p {\n", par);
-  printf("   ar_size == %lu\n", par->ar_size);
-  printf("  ar_pbase == %p\n", par->ar_pbase);
-  printf("  ar_pnext == %p\n", par->ar_pnext);
-  printf("  ar_plast == %p\n", par->ar_plast);
+  printf("           ar_size == %lu\n", par->ar_size);
+  printf("          ar_pbase == %p\n", par->ar_pbase);
+  printf("          ar_pnext == %p\n", par->ar_pnext);
+  printf("          ar_plast == %p\n", par->ar_plast);
+  printf("  ar_n_allocations == %u\n", par->ar_n_allocations);
+  printf("  ar_n_checkpoints == %u\n", par->ar_n_checkpoints);
+  printf("    ar_n_rollbacks == %u\n", par->ar_n_rollbacks);
+  printf("}\n");
 }
 
 #if defined(STACKALLOC_TEST)
@@ -91,6 +109,8 @@ void stkalloc_test(void)
   T(par->ar_pbase + 32 == par->ar_pnext);
   T(stkalloc_rollback(par, chkpt));
   T(par->ar_pnext == chkpt);
+  stkalloc_print_stats(par);
+  stkalloc_free_arena(par);
 }
 
 int main(int argc, char **argv)

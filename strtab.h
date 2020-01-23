@@ -1,8 +1,9 @@
 #pragma once
 
-#define N_SLOTS 59093
+#define MAX_RECS 59093
+#define N_SLOTS 3803
 #define MAX_STRINGS 2048
-#define STR_AREA_SIZE 1048576
+#define STR_AREA_SIZE MIB(5)
 
 typestruct(STRREC);
 struct STRREC {
@@ -13,15 +14,9 @@ struct STRREC {
 typestruct(STRTAB);
 struct STRTAB {
   STRREC *st_htab[N_SLOTS];
-  uint32_t st_next_slot;
-  STRREC st_slots[N_SLOTS];
+  uint32_t st_next_rec_idx;
+  STRREC st_slots[MAX_RECS];
   uint32_t st_next_char;
   char st_strings[STR_AREA_SIZE];
-};
-
-// "ST" == "strtab"
-enum {
-  ST_NEW_STR_INSERTED = 0,
-  ST_STR_EXISTS = 1,
-  ST_UNABLE_TO_INSERT = 2,
+  uint32_t st_n_strings_inserted;
 };

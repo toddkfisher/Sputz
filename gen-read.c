@@ -4,6 +4,7 @@
 // Initialize a GEN_READ to get characters from a string.
 bool gr_open_str(GEN_READ *r, char *s)
 {
+  DBG_PRINT_FN;
   r->gr_type = I_STRING;
   r->gr_str = strdup(s);
   r->gr_strp = r->gr_str;

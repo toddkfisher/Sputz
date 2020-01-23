@@ -90,14 +90,6 @@ struct PARSE_TREE_NODE {
   };
 };
 
-// "S_" == "status"
-enum {
-  S_MEM_OVERFLOW,
-  S_PARSE_ERROR,
-  S_LEX_ERROR,
-  S_OK
-};
-
 // This struct just bundles lookhead, character stream, and status info together.
 typestruct(PARSE_STATE);
 struct PARSE_STATE {
@@ -106,7 +98,7 @@ struct PARSE_STATE {
   // Next input to examine.
   LEX_UNIT pst_lookahead;
   // Current status of parse.
-  uint8_t pst_status;
+  uint32_t pst_status;
   // Error message if pst_status != PSTAT_OK.  Empty otherwise.
   char pst_err_msg[MAX_STR];
 };

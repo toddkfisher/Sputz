@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <setjmp.h>
 #include <assert.h>
+#include <time.h>
 #if defined(NO_CPROTO)  // also fuck you cproto
 #include <math.h>
 #endif
@@ -15,4 +16,5 @@
 #include "parse-tree.h"
 #include "stackalloc.h"
 #include "strtab.h"
+#include "status-codes.h"
 #include "prototypes.h"

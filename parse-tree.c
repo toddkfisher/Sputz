@@ -387,18 +387,28 @@ PARSE_TREE_NODE *parse_pattern_data_constructor(PARSE_STATE *pstate)
   return result;
 }
 
-bool parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppmem,
+uint32_t parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppmem,
   STRTAB **ppstrtab)
 {
-  bool result = true;
-  init_gr(test_type, arg, &pstate->pst_input);
-  result = S_OK == pstate->pst_status;
-  result = result && (NULL != (*ppmem = stkalloc_new_arena(MIB(1))));
-  // Need stringtable before lexing can begin.
-  result = result && (NULL != (*ppstrtab = strtab_new(*ppmem)));
-  pstate->pst_status = (LX_SCAN_OK == lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead)) ? S_OK : S_LEX_ERROR;
-  result = result && (pstate->pst_status != S_LEX_ERROR);
+  uint32_t result = S_OK;
+  ABORT_ON_FALSE(S_OK == (result = init_gr(test_type, arg, &pstate->pst_input)), INIT_READ_FAIL);
+  ABORT_ON_NULL(*ppmem = stkalloc_new_arena(MIB(10)), INIT_MEM_FAIL0);
+  ABORT_ON_NULL(*ppstrtab = strtab_new(*ppmem), INIT_MEM_FAIL1);
+  pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead);
+  result = pstate->pst_status;
+  DBG_PRINT_VAR(scode_name(result), STRING);
   return result;
+  INIT_READ_FAIL: {
+    return result;
+  }
+  INIT_MEM_FAIL0: {
+    result = S_UNABLE_TO_CREATE_ARENA;
+    return result;
+  }
+  INIT_MEM_FAIL1: {
+    result = S_UNABLE_TO_CREATE_STRTAB;
+    return result;
+  }
 }
 
 void parse_fin(PARSE_STATE *pstate)
@@ -414,34 +424,32 @@ void parse_fin(PARSE_STATE *pstate)
 
 //----------------------------------------------------------------------------------------------------------------------
 // Initialize GEN_READ *r from command-line parameters passed in.
-void init_gr(char test_type, char *arg, GEN_READ *r)
+uint32_t init_gr(char test_type, char *arg, GEN_READ *r)
 {
+  uint32_t result = S_OK;
   switch (test_type) {
     case 'f':
       if (!gr_open_file(r, arg)) {
-        fprintf(stderr, "Can't open %s\n", arg);
-        exit(0);
+        result = S_UNABLE_TO_OPEN_FILE;
       }
       break;
     case 's':
       if (!gr_open_str(r, arg)) {
-        fprintf(stderr, "Can't initialize with string.\n");
-        exit(0);
+        result = S_UNABLE_TO_OPEN_STRING;
       }
       break;
 #if 0
     case 'r':
       if (!gr_open_rdln(r, arg)) {
-        fprintf(stderr, "Can't initialize with readline.\n");
-        exit(0);
+        result = S_UNABLE_TO_OPEN_READLINE;
       }
       break;
 #endif
     default:
-      fprintf(stderr, "Unrecognized input type: %c\n", test_type);
-      exit(0);
+      result = S_UNKNOWN_INPUT_TYPE;
       break;
   }
+  return result;
 }
 
 #if defined(TEST_PARSE)
@@ -452,11 +460,16 @@ int main(int argc, char **argv)
   PARSE_STATE pstate;
   PARSE_TREE_NODE *proot;
   int retval = 0;
+  uint32_t init_status_code = S_OK;
   if (argc < 3 || !STREQ(argv[1], "-s")) {
     fprintf(stderr, "Usage: %s -s '<text>'\n", argv[0]);
     retval = 1;
-  } else if (!parse_init(&pstate, argv[1][1], argv[2], &g_pmem, &g_pstrtab)) {
-    fprintf(stderr, "Initialization failure.\n");
+  } else if (scode_is_error(init_status_code = parse_init(&pstate,
+                                                          argv[1][1],
+                                                          argv[2],
+                                                          &g_pmem,
+                                                          &g_pstrtab))) {
+    fprintf(stderr, "Initialization failure: %s.\n", scode_name(init_status_code));
     retval = 2;
   } else if (!setjmp(g_abort)) {
     proot = parse_sputz_program(&pstate);

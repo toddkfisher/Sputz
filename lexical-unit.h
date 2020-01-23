@@ -20,10 +20,3 @@ struct LEX_UNIT {
     char *lx_psym_name;
   };
 };
-
-// "LX_" == "lex status"
-enum {
-  LX_SCAN_OK = 0,
-  LX_UNKNOWN_CHAR = 1,
-  LX_UNABLE_TO_SAVE_NAME_OR_STRING = 2
-};

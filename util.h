@@ -33,7 +33,7 @@
   do {                                          \
     if (!(val)) {                               \
       DBG_PRINT_FN;                             \
-      DBG_MSG("ABORT_ON_FALSE : aborting.\n");  \
+      DBG_MSG("ABORT_ON_FALSE\n");  \
       goto label;                               \
     }                                           \
   } while (0)
@@ -42,7 +42,8 @@
   do {                                          \
     if (NULL == (val)) {                        \
       DBG_PRINT_FN;                             \
-      DBG_MSG("ABORT_ON_NULL : aborting.\n");   \
+      DBG_PRINT_LINE;                           \
+      DBG_MSG("ABORT_ON_NULL\n");   \
       goto label;                               \
     }                                           \
   } while (0)
@@ -99,16 +100,20 @@
 #define typestruct(s) typedef struct s s
 
 #define INT     "%d"
+#define CHAR    "%c"
+#define LONG    "%ld"
 #define FLOAT   "%f"
 #define DOUBLE  "%ld"
 #define HEX     "%x"
 #define POINTER "%p"
+#define STRING  "%s"
 
 #ifdef DEBUG
 #  define DBG_STUB(s) do { s; } while (0)
 #  define DBG_PRINT_VAR(v, fmt) printf(#v " == " fmt "\n", v);
 #  define DBG_PRINT(args, ...) printf(args, __VA_ARGS__)
 #  define DBG_PRINT_FN printf("In %s()\n", __FUNCTION__)
+#  define DBG_PRINT_LINE printf("Line %d\n", __LINE__)
 #  define DBG_MSG(msg) printf("%s", (msg))
 #  define DBG_ENTER printf("Entering: %s()\n", __FUNCTION__)
 #  define DBG_LEAVE printf("Leaving: %s()\n", __FUNCTION__)
@@ -117,6 +122,7 @@
 #  define DBG_PRINT_VAR(v, fmt) do { } while (0)
 #  define DBG_PRINT(args, ...) do { } while (0)
 #  define DBG_PRINT_FN do { } while (0)
+#  define DBG_PRINT_LINE do { } while (0)
 #  define DBG_MSG(msg) do { } while (0)
 #  define DBG_ENTER do { } while (0)
 #  define DBG_LEAVE do { } while (0)
