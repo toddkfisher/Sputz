@@ -5,109 +5,89 @@ char *node_type_names[] = {
 #include "enum-PT.h"
 };
 
+#define INDENT_SPACES 2
+
 extern STRTAB *g_pstrtab;
 
 #define IND do { for (int i = 0; i < indent; ++i) { printf(" "); } } while (0)
 
-#define BINARY_OP_CASE(node_type)                         \
-  case node_type:                                         \
-    IND; printf("-nd_binop_left_expr:\n");                \
-    parse_tree_print(p->nd_binop_left_expr, indent + 2);  \
-    IND; printf("- nd_binop_right_expr:\n");              \
-    parse_tree_print(p->nd_binop_right_expr, indent + 2); \
-    break
+
+bool parse_is_binary_op(uint32_t type)
+{
+  bool result = type > NT_BEGIN_BINARY_OP && type < NT_END_BINARY_OP;
+  return result;
+}
+
+void parse_print_binary_op(PARSE_TREE_NODE *p, uint8_t indent)
+{
+  IND; printf("left_expr:\n");
+  parse_tree_print(p->nd_binop_left_expr, indent + INDENT_SPACES);
+  IND; printf("right_expr:\n");
+  parse_tree_print(p->nd_binop_right_expr, indent + INDENT_SPACES);
+}
+
+bool parse_is_unary_op(uint32_t type)
+{
+  bool result = type > NT_BEGIN_UNARY_OP && type < NT_END_UNARY_OP;
+  return result;
+}
+
+void parse_print_unary_op(PARSE_TREE_NODE *p, uint8_t indent)
+{
+  IND; printf("unop_expr:\n");
+  parse_tree_print(p->nd_unop_expr, indent + INDENT_SPACES);
+}
 
 void parse_tree_print(PARSE_TREE_NODE *p, uint8_t indent)
 {
   IND;
   if (NULL != p) {
     printf("%s\n", node_type_names[p->nd_type]);
-    switch (p->nd_type) {
-      BINARY_OP_CASE(NT_TUPLECAT_OP);
-      BINARY_OP_CASE(NT_AND_OP);
-      BINARY_OP_CASE(NT_OR_OP);
-      BINARY_OP_CASE(NT_LT_OP);
-      BINARY_OP_CASE(NT_GT_OP);
-      BINARY_OP_CASE(NT_LE_OP);
-      BINARY_OP_CASE(NT_GE_OP);
-      BINARY_OP_CASE(NT_EQ_OP);
-      BINARY_OP_CASE(NT_ADD_OP);
-      BINARY_OP_CASE(NT_SUB_OP);
-      BINARY_OP_CASE(NT_MUL_OP);
-      BINARY_OP_CASE(NT_DIV_OP);
-      BINARY_OP_CASE(NT_MOD_OP);
-      BINARY_OP_CASE(NT_SEQ_OP);
-      case NT_NOT_OP:
-        IND; printf("-nd_unop_expr: ");
-        parse_tree_print(p->nd_unop_expr, indent + 2);
-        break;
-      case NT_IF:
-        IND; printf("-nd_if_test:\n");
-        parse_tree_print(p->nd_if_test, indent + 2);
-        IND; printf("-nd_if_then_branch:\n");
-        parse_tree_print(p->nd_if_then_branch, indent + 2);
-        IND; printf("-nd_if_else_branch:\n");
-        parse_tree_print(p->nd_if_else_branch, indent + 2);
-        break;
-      case NT_FN_DEF:
-        break;
-      case NT_SIMPLE_CLOSURE:
-      case NT_PATT_CLOSURE:
-        IND; printf("-nd_closure_expr:\n");
-        parse_tree_print(p->nd_closure_expr, indent + 2);
-        break;
-      case NT_CLOSUREIZE:
-        break;
-      case NT_ASSIGN:
-        IND; printf("-nd_assign_patt:\n");
-        parse_tree_print(p->nd_assign_patt, indent + 2);
-        IND; printf("-nd_assign_expr:\n");
-        parse_tree_print(p->nd_assign_expr, indent + 2);
-        break;
-      case NT_VAR_REF:
-        IND; printf("-nd_var_name: %s\n", p->nd_pvar_name);
-        IND; printf("-nd_outer_count: %u\n", p->nd_outer_count);
-        break;
-      case NT_NUM_CONST:
-        IND; printf("-nd_num_const : %g\n", p->nd_num_const);
-        break;
-      case NT_SYM_CONST:
-        IND; printf("-%s\n", p->nd_psym_name);
-        break;
-      case NT_TAGGED_TUPLE:
-        IND; printf("-nd_tagged_sym:\n");
-        parse_tree_print(p->nd_tagged_sym, indent + 2);
-        IND; printf("-nd_tagged_expr:\n");
-        parse_tree_print(p->nd_tagged_expr, indent + 2);
-        break;
-      case NT_PATT_TAGGED_TUPLE:
-        break;
-      case NT_PATT_SYM:
-        break;
-      case NT_PATT_VAR_REF:
-        break;
-      case NT_PATT_NUM_CONST:
-        break;
-      case NT_PATT_BIND_VAR:
-        break;
-      case NT_PATT_APPLY:
-        break;
-      case NT_PATT_ALSO:
-        break;
-      case NT_PATT_TEST:
-        break;
-      case NT_PATT_RESULT_PAIR:
-        break;
-      case NT_PATT_TUPLECAT:
-        break;
-      case NT_APPLY:
-        IND; printf("-nd_app_fn:\n");
-        parse_tree_print(p->nd_app_fn, indent + 2);
-        IND; printf("-nd_app_args_expr:\n");
-        parse_tree_print(p->nd_app_args_expr, indent + 2);
-        break;
-      default:
-        break;
+    if (parse_is_binary_op(p->nd_type)) {
+      parse_print_binary_op(p, indent);
+    } else if (parse_is_unary_op(p->nd_type)) {
+      parse_print_unary_op(p, indent);
+    } else {
+      switch (p->nd_type) {
+        case NT_IF:
+          IND; printf("if_test:\n");
+          parse_tree_print(p->nd_if_test, indent + INDENT_SPACES);
+          IND; printf("then_branch:\n");
+          parse_tree_print(p->nd_if_then_branch, indent + INDENT_SPACES);
+          IND; printf("else_branch:\n");
+          parse_tree_print(p->nd_if_else_branch, indent + INDENT_SPACES);
+          break;
+        case NT_FN_DEF:
+          break;
+        case NT_CLOSUREIZE:
+          break;
+        case NT_SIMPLE_CLOSURE:
+          break;
+        case NT_PATT_CLOSURE:
+          break;
+        case NT_VAR_REF:
+          break;
+        case NT_NUM_CONST:
+          break;
+        case NT_SYM_CONST:
+          break;
+        case NT_PATT_SYM:
+          break;
+        case NT_PATT_VAR_REF:
+          break;
+        case NT_PATT_NUM_CONST:
+          break;
+        case NT_PATT_BIND_VAR:
+          break;
+        case NT_PATT_APPLY:
+          break;
+        case NT_PATT_RESULT_PAIR:
+          break;
+        case NT_APPLY:
+          break;
+        case NT_RESULT:
+          break;
+      }
     }
   }
 }
@@ -135,39 +115,28 @@ void parse_tree_left_assoc(PARSE_TREE_NODE *np)
   do {                                                          \
     sprintf((pstate)->pst_err_msg, "%s : NYI.", __FUNCTION__);  \
     (pstate)->pst_status = S_PARSE_ERROR;                       \
-    longjmp(g_abort, 1);                                        \
+    longjmp((pstate)->pst_abort, 1);                            \
   } while (0)
-
-// Location to jump to if a parse fails.  Used in some functions for backtracking.
-// TODO: make thread-safe.
-jmp_buf g_abort;
-
-// Arena for memory allocated in stack discipline.  This allows for easy deallocation
-// on a failed (partial) parse.
-// TODO: make thread-safe.
-ARENA *g_pmem;
-
-extern char *g_lex_unit_names[];
 
 // Scan the next lexical unit and store in PARSE_STATE
 void parse_scan_lx_unit(PARSE_STATE *pstate)
 {
-  if (LX_SCAN_OK != lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead)) {
+  if (LX_SCAN_OK != lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab)) {
     pstate->pst_status = S_LEX_ERROR;
     strcpy(pstate->pst_err_msg, "Scanning error. Unable to read.");
-    longjmp(g_abort, 1);
+    longjmp(pstate->pst_abort, 1);
   }
 }
 
 PARSE_TREE_NODE *parse_alloc_node(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *p;
-  p = stkalloc_get_mem(g_pmem, sizeof(PARSE_TREE_NODE));
+  p = stkalloc_get_mem(pstate->pst_pmem, sizeof(PARSE_TREE_NODE));
   if (NULL == p) {
     pstate->pst_status = S_MEM_OVERFLOW;
     // Maybe some better diagostics in the future.
     strcpy(pstate->pst_err_msg, "Memory overflow.");
-    longjmp(g_abort, 1);
+    longjmp(pstate->pst_abort, 1);
   }
   zero_mem(p, sizeof(PARSE_TREE_NODE));
   return p;
@@ -177,8 +146,8 @@ void parse_expect(uint8_t lx_type, PARSE_STATE *pstate)
 {
   if (lx_type != pstate->pst_lookahead.lx_type) {
     pstate->pst_status = S_LEX_ERROR;
-    sprintf(pstate->pst_err_msg, "Scanning error. Expected %s.", g_lex_unit_names[lx_type]);
-    longjmp(g_abort, 1);
+    sprintf(pstate->pst_err_msg, "Scanning error. Expected %s.", lx_name(lx_type));
+    longjmp(pstate->pst_abort, 1);
   }
 }
 
@@ -219,38 +188,40 @@ PARSE_TREE_NODE *parse_seq_expr(PARSE_STATE *pstate)
   return retval;
 }
 
-// expr = ifExpr | assignOrTupleExpr
+// expr = ifExpr | resultExpr | assignExpr
 PARSE_TREE_NODE *parse_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
   if (L_IF_KW == pstate->pst_lookahead.lx_type) {
     result = parse_if_expr(pstate);
+  } else if (L_RESULT_KW == pstate->pst_lookahead.lx_type) {
+    result = parse_result_expr(pstate);
   } else {
-    result = parse_assign_or_tuple_expr(pstate);
+    result = parse_assign_expr(pstate);
   }
   return result;
 }
 
-// assign-or-tuple-expr = assign-expr | tuple-expr
-PARSE_TREE_NODE *parse_assign_or_tuple_expr(PARSE_STATE *pstate)
+// assignExpr = varName ':=' tupleExpr
+PARSE_TREE_NODE *parse_assign_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
-  if (L_VAR_NAME == pstate->pst_lookahead.lx_type) {
-    result = parse_assign_expr(pstate);
-  } else {
-    result = parse_tuple_expr(pstate);
-  }
+  PARSE_TREE_NODE *expr = NULL;
+  char *var_name;
+  parse_expect(L_VAR_NAME, pstate);
+  var_name = pstate->pst_lookahead.lx_pvar_name;
   return result;
 }
 
-PARSE_TREE_NODE *parse_assign_expr(PARSE_STATE *pstate)
+// ifExpr = 'if' assignExpr 'then' assignExpr 'else' assignExpr
+PARSE_TREE_NODE *parse_if_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
   return result;
 }
 
-PARSE_TREE_NODE *parse_if_expr(PARSE_STATE *pstate)
+PARSE_TREE_NODE *parse_result_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -394,7 +365,7 @@ uint32_t parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppme
   ABORT_ON_FALSE(S_OK == (result = init_gr(test_type, arg, &pstate->pst_input)), INIT_READ_FAIL);
   ABORT_ON_NULL(*ppmem = stkalloc_new_arena(MIB(10)), INIT_MEM_FAIL0);
   ABORT_ON_NULL(*ppstrtab = strtab_new(*ppmem), INIT_MEM_FAIL1);
-  pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead);
+  pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab);
   result = pstate->pst_status;
   DBG_PRINT_VAR(scode_name(result), STRING);
   return result;
@@ -417,8 +388,8 @@ void parse_fin(PARSE_STATE *pstate)
   pstate->pst_status = S_OK;
   strcpy(pstate->pst_err_msg, "");
   pstate->pst_lookahead.lx_type = L_UNKNOWN;
-  if (NULL != g_pmem) {
-    stkalloc_free_arena(g_pmem);
+  if (NULL != pstate->pst_pmem) {
+    stkalloc_free_arena(pstate->pst_pmem);
   }
 }
 
@@ -467,11 +438,11 @@ int main(int argc, char **argv)
   } else if (scode_is_error(init_status_code = parse_init(&pstate,
                                                           argv[1][1],
                                                           argv[2],
-                                                          &g_pmem,
-                                                          &g_pstrtab))) {
+                                                          &pstate.pst_pmem,
+                                                          &pstate.pst_pstrtab))) {
     fprintf(stderr, "Initialization failure: %s.\n", scode_name(init_status_code));
     retval = 2;
-  } else if (!setjmp(g_abort)) {
+  } else if (!setjmp(pstate.pst_abort)) {
     proot = parse_sputz_program(&pstate);
     fprintf(stderr, "Parse successful.\n");
     printf("Result : \n");

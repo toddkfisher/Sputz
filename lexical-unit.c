@@ -7,6 +7,15 @@ char *g_lex_unit_names[] ={
 
 STRTAB *g_pstrtab = NULL;
 
+char *lx_name(uint32_t lx_type)
+{
+  char *result = "UNKNOWN_LEXICAL_TYPE";
+  if (lx_type < sizeof(g_lex_unit_names)/sizeof(char *)) {
+    result = g_lex_unit_names[lx_type];
+  }
+  return result;
+}
+
 void lx_print(LEX_UNIT *plx)
 {
   printf("LEX_UNIT {\n");
@@ -45,20 +54,21 @@ struct {
   char *kw_name;
   uint8_t kw_type;
 } g_keywords[]= {
-  "also",  L_ALSO_KW,
-  "and",   L_AND_KW,
-  "bind",  L_BIND_KW,
-  "else",  L_ELSE_KW,
-  "if",    L_IF_KW,
-  "not",   L_NOT_KW,
-  "null",  L_NULL_KW,
-  "or",    L_OR_KW,
-  "outer", L_OUTER_KW,
-  "then",  L_THEN_KW,
-  "",      0
+  "also",   L_ALSO_KW,
+  "and",    L_AND_KW,
+  "bind",   L_BIND_KW,
+  "else",   L_ELSE_KW,
+  "if",     L_IF_KW,
+  "not",    L_NOT_KW,
+  "null",   L_NULL_KW,
+  "or",     L_OR_KW,
+  "outer",  L_OUTER_KW,
+  "result", L_RESULT_KW,
+  "then",   L_THEN_KW,
+  "",       0
 };
 
-uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
+uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t retval = LX_UNKNOWN_CHAR;
   char ch;
@@ -66,7 +76,6 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
   plx->lx_line_n = pinput->gr_line_n;
   plx->lx_col_n = pinput->gr_col_n;
   if (gr_get_char(pinput, &ch)) {
-    DBG_PRINT_VAR(ch, CHAR);
     if (';' == ch) {
       plx->lx_type = L_SEQ;
       retval = LX_SCAN_OK;
@@ -186,7 +195,7 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
         gr_putback_char(pinput, ch);
       }
       if (isupper(name[0])) {
-        if (ST_UNABLE_TO_INSERT == strtab_insert(g_pstrtab, name, &plx->lx_psym_name)) {
+        if (ST_UNABLE_TO_INSERT == strtab_insert(pstrtab, name, &plx->lx_psym_name)) {
           retval = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
         } else {
           plx->lx_type = L_SYMBOL;
@@ -201,7 +210,7 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx)
         }
       }
       if (L_VAR_NAME == plx->lx_type) {
-        if (ST_UNABLE_TO_INSERT == strtab_insert(g_pstrtab, name, &plx->lx_pvar_name)) {
+        if (ST_UNABLE_TO_INSERT == strtab_insert(pstrtab, name, &plx->lx_pvar_name)) {
           retval = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
         } else {
           retval = LX_SCAN_OK;

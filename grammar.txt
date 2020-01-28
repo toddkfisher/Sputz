@@ -2,18 +2,15 @@ repl                   = (seqexpr nl)*
 
 seqExpr                =  expr  (';'  expr )*
 
-expr                   = (  ifExpr
-                          | simpleExpr
-                         )
+expr                   = ifExpr
+                       | resultExpr
+                       | assignExpr
 
-simpleExpr             =
-
-assignOrTupleExpr       = assignExpr
-                         | tupleExpr
-
-assignExpr             = varName ':=' assignOrTupleExpr
+assignExpr             = varName ':=' tupleExpr
 
 ifExpr                 = 'if' assignExpr 'then' assignExpr 'else' assignExpr
+
+valueExpr              = 'result' tupleExpr
 
 tupleEpxr              = tupleComponent  (tupleCatOp tupleComponent )*
 
@@ -27,7 +24,6 @@ compareTerm            = term (addOp term)*
 
 term                   = factor (multOp factor)*
 
-
 factor                 = basicFactor  ('(' [tupleExpr] ')')*
 
 basicFactor            = (  ('outer')*  varName
@@ -37,7 +33,8 @@ basicFactor            = (  ('outer')*  varName
                           | closure
                           | varName
                           | '(' seqExpr ')'
-                        )
+                          | ~'(' seqExpr ')'
+                         )
 
 
 number                 = ['~']digit+['.' digit+ ][('e'|'E') ['~'] digit+]

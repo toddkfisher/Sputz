@@ -29,10 +29,10 @@ struct PARSE_TREE_NODE {
       PARSE_TREE_NODE **nd_patt_result_array;
     };
     // NT_CLOSUREIZE
-    PARSE_TREE_NODE *nd_closurize_expr;
+    uint32_t nd_closureize_token;
     // NT_ASSIGN
     struct {
-      PARSE_TREE_NODE *nd_assign_patt;
+      char *nd_assign_var_name;
       PARSE_TREE_NODE *nd_assign_expr;
     };
     // NT_VAR_REF
@@ -63,22 +63,10 @@ struct PARSE_TREE_NODE {
       PARSE_TREE_NODE *nd_patt_closure;
       PARSE_TREE_NODE *nd_patt_appl_args;
     };
-    // NT_PATT_ALSO
-    struct {
-      PARSE_TREE_NODE *nd_also_expr_left;
-      PARSE_TREE_NODE *nd_also_expr_right;
-    };
-    // NT_PATT_TEST
-    PARSE_TREE_NODE *nd_patt_test_expr;
     // NT_PATT_RESULT_PAIR
     struct {
       PARSE_TREE_NODE *nd_pattres_patt_expr;
       PARSE_TREE_NODE *nd_pattres_res_expr;
-    };
-    // NT_PATT_TUPLECAT
-    struct {
-      PARSE_TREE_NODE *nd_left_pattern;
-      PARSE_TREE_NODE *nd_right_pattern;
     };
     // NT_SIMPLE_CLOSURE, NT_PATT_CLOSURE
     PARSE_TREE_NODE *nd_closure_expr;
@@ -101,4 +89,10 @@ struct PARSE_STATE {
   uint32_t pst_status;
   // Error message if pst_status != PSTAT_OK.  Empty otherwise.
   char pst_err_msg[MAX_STR];
+  // Dynamic memory allocation arena for string table, parse tree nodes, etc.
+  ARENA *pst_pmem;
+  // Location to jump to if code can't be compiled.
+  jmp_buf pst_abort;
+  // Hash table for string constants, variable names, symbol names, etc.
+  STRTAB *pst_pstrtab;
 };

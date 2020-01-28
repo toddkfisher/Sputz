@@ -100,13 +100,13 @@
 #define typestruct(s) typedef struct s s
 
 #define INT     "%d"
-#define CHAR    "%c"
+#define CHAR    "'%c'"
 #define LONG    "%ld"
 #define FLOAT   "%f"
 #define DOUBLE  "%ld"
 #define HEX     "%x"
 #define POINTER "%p"
-#define STRING  "%s"
+#define STRING  "\"%s\""
 
 #ifdef DEBUG
 #  define DBG_STUB(s) do { s; } while (0)

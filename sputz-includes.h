@@ -11,10 +11,10 @@
 #include <math.h>
 #endif
 #include "util.h"
+#include "stackalloc.h"
+#include "strtab.h"
 #include "gen-read.h"
 #include "lexical-unit.h"
 #include "parse-tree.h"
-#include "stackalloc.h"
-#include "strtab.h"
 #include "status-codes.h"
 #include "prototypes.h"
