@@ -1,29 +1,70 @@
 #+OPTIONS: toc:nil
-* Technique for backtracking during a parse
-** For example, the grammar rules:
-   #+BEGIN_EXAMPLE
-   assign-or-tuple-expr = assign-expr
-                        | tuple-expr
-
-   assign-expr          = pattern-tuple ':=' assign-or-tuple-expr
-
-   tuple-expr           = ...
-   #+END_EXAMPLE
-   While parsing an =assign-or-tuple-expr= we must be prepared to backtrack. Since a
-   =pattern-tuple= might look like a =tuple-expr= we don't know if we're parsing an
-   =assign-expr= or a =tuple-expr=. So if =assign-expr= fails we must back up in the
-   source text and try to parse a =tuple-expr=.  We might have an implementation:
-   #+BEGIN_SRC
-   PARSE_TREE_NODE *parse_assign_or_tuple_expr(PARSE_STATE *pstate)
-   {
-     // Save current position of source text in pstate
-     // push g_abort onto g_jmpbuf_stack
-     if (PARSE_ERROR == setjmp(g_abort)) {
-       // Backtrack to saved position.
-       g_abort = // pop g_jmpbuf_stack
-       result = parse_tuple_expr(...);
-     }
-     result = parse_assign_expr(...);
-     g_abort = // pop g_jmpbuf_stack
-   }
-   #+END_SRC
+| file                | purpose                                                    |
+|---------------------+------------------------------------------------------------|
+| /                   | <>                                                         |
+| enum-int.h          | Include enums as ints                                      |
+| enum-str.h          | Include enums as strings                                   |
+| enum-L.h            | Lexical unit enums                                         |
+| enum-PT.h           | Parse tree enums                                           |
+| enum-status-codes.h | Status code enums                                          |
+| gen-read.c          | General reader implementation                              |
+| gen-read.h          | General reader header                                      |
+| lexical-unit.c      | Lexical unit implementation                                |
+| lexical-unit.h      | Lexical unit header                                        |
+| parse-tree.c        | Parser implementation                                      |
+| parse-tree.h        | Parser header                                              |
+| prototypes.h        | Public function prototypes                                 |
+| sputz-includes.h    | Single include file for project                            |
+| stackalloc.c        | Stack-based memory allocator implementation                |
+| stackalloc.h        | Stack-based memory allocator header                        |
+| status-codes.c      | Status-code related functions                              |
+| status-codes.h      | Status-codes enums.                                        |
+| strtab.c            | String table implementation                                |
+| strtab.h            | String table header                                        |
+| util.c              | Utility functions                                          |
+| util.h              | Utility function macros, constants etc.                    |
+| build.sh            | Build script (no ~make~, just recompile & link everything) |
+* Naming conventions
+** General
+   | prefix | meaning      |
+   |--------+--------------|
+   | /      | <>           |
+   | ~n_~   | Number/count |
+   | ~p~..  | Pointer      |
+** Constants and enums
+   | prefix | meaning                           |
+   |--------+-----------------------------------|
+   | /      | <>                                |
+   | ~L_~   | Lexical unit type                 |
+   | ~KW_~  | Keyword                           |
+   | ~NT_~  | Node type                         |
+   | ~ST_~  | Strtab (string table)             |
+   | ~LX_~  | Lexer staus                       |
+   | ~S_~   | Status (specialize these someday) |
+   | ~I_~   | Input source (gen read)           |
+** Functions and macros
+   | prefix      | meaning                                                     |
+   |-------------+-------------------------------------------------------------|
+   | /           | <>                                                          |
+   | ~gr_~       | Gen read (general reader)                                   |
+   | ~GR_~       | Gen read                                                    |
+   | ~lx_~       | Lexical unit                                                |
+   | ~parse_~    | Parse tree                                                  |
+   | ~stkalloc_~ | Stack (based) (memory) allocator                            |
+   | ~scode_~    | Status code                                                 |
+   | ~strtab_~   | String table                                                |
+   | ~MALLOC_~   | ~malloc()~ wrappers                                         |
+   | ~ABORT_ON_~ | Error check/jump function.                                  |
+   | ~DBG_~      | Debugging macros (activated with compiler flag "~-DDEBUG~") |
+** Structs
+   | prefix | meaning/struct name                 |
+   |--------+-------------------------------------|
+   | /      | <>                                  |
+   | ~pos_~ | ~GEN_READ_POSITION~                 |
+   | ~gr_~  | ~GEN_READ~                          |
+   | ~lx_~  | ~LEX_UNIT~                          |
+   | ~nd_~  | ~PARSE_TREE_NODE~                   |
+   | ~pst_~ | ~PARSE_STATE~                       |
+   | ~ar_~  | (memory) ~ARENA~                    |
+   | ~sr_~  | ~STRREC~ (string/hash table record) |
+   | ~st_~  | ~STRTAB~ (string table)             |
