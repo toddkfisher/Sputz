@@ -1,0 +1,68 @@
+#+OPTIONS: toc:nil
+* repl
+  (seqexpr nl)*
+* seqExpr
+  expr  (*;*  expr )*
+* expr
+  ifExpr       \\
+  ‖ resultExpr \\
+  ‖ assignExpr
+* assignExpr
+  varName *:=* tupleExpr
+* ifExpr
+  *if* assignExpr *then* assignExpr *else* assignExpr
+* valueExpr
+  *result* tupleExpr
+* tupleEpxr
+  tupleComponent  (tupleCatOp tupleComponent )*
+* tupleComponent
+  orTerm (orOp orTerm)*
+* orTerm
+  andTerm (andOp andTerm)*
+* andTerm
+  [notOp] compareTerm (compareOp compareTerm)*
+* compareTerm
+  term (addOp term)*
+* term
+  factor (multOp factor)*
+* factor
+  basicFactor  (*(* [tupleExpr] *)*)*
+* basicFactor
+  ((*outer*)*  varName   \\
+   ‖ number              \\
+   ‖ symbol              \\
+   ‖ dataConstructor     \\
+   ‖ closure             \\
+   ‖ varName             \\
+   ‖ *(* seqExpr *)*     \\
+   ‖ *~* *(* seqExpr *)* \\
+  )
+* number
+  [*~*]digit+[*.* digit+ ][(*e*‖*E*) [*~*] digit+]
+* symbol
+  upperCase (letter ‖ *_* ‖ digit ‖ *?* ‖ *!*)*
+* varName
+  lowerCase (letter ‖ *_* ‖ digit ‖ *?* ‖ *!*)*
+* dataConstructor
+  symbol *(* [tupleExpr] *)*
+* application
+  factor *(* [tupleExpr] *)*
+* closure
+  *{* ( (*|* patternAlternative)* ‖ seqExpr) *}*
+* patternAlternative
+  patternTuple [*!!* guard] *=>* seqExpr
+* patternTuple
+  [ patternTupleComponent (*,* patternTupleComponent)* ]
+* patternTupleComponent
+  patternFactor [(*also* patternFactor)* *!* expr]
+* patternFactor
+  ((*outer*)+ [ *bind* ] var  \\
+   ‖ symbol                 \\
+   ‖ patternDataConstructor \\
+   ‖ number                 \\
+   ‖ closure                \\
+   ‖ *(* patternTuple *)*   \\
+  )                         \\
+  [ *(* patternTuple *)* ]
+* patternDataConstructor
+  symbol *(* patternTuple *)*
