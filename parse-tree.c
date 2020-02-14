@@ -7,10 +7,7 @@ char *node_type_names[] = {
 
 #define INDENT_SPACES 2
 
-extern STRTAB *g_pstrtab;
-
-#define IND do { for (int i = 0; i < indent; ++i) { printf(" "); } } while (0)
-
+#define IND(n) do { for (int i = 0; i < indent*(n); ++i) { printf(" "); } } while (0)
 
 bool parse_is_binary_op(uint32_t type)
 {
@@ -20,9 +17,9 @@ bool parse_is_binary_op(uint32_t type)
 
 void parse_print_binary_op(PARSE_TREE_NODE *p, uint8_t indent)
 {
-  IND; printf("left_expr:\n");
+  IND(2); printf("-left_expr:\n");
   parse_tree_print(p->nd_binop_left_expr, indent + INDENT_SPACES);
-  IND; printf("right_expr:\n");
+  IND(2); printf("-right_expr:\n");
   parse_tree_print(p->nd_binop_right_expr, indent + INDENT_SPACES);
 }
 
@@ -34,58 +31,31 @@ bool parse_is_unary_op(uint32_t type)
 
 void parse_print_unary_op(PARSE_TREE_NODE *p, uint8_t indent)
 {
-  IND; printf("unop_expr:\n");
+  IND(2); printf("-unop_expr:\n");
   parse_tree_print(p->nd_unop_expr, indent + INDENT_SPACES);
 }
 
 void parse_tree_print(PARSE_TREE_NODE *p, uint8_t indent)
 {
-  IND;
   if (NULL != p) {
-    printf("%s\n", node_type_names[p->nd_type]);
+    IND(1); printf("%s\n", node_type_names[p->nd_type]);
     if (parse_is_binary_op(p->nd_type)) {
       parse_print_binary_op(p, indent);
     } else if (parse_is_unary_op(p->nd_type)) {
       parse_print_unary_op(p, indent);
     } else {
       switch (p->nd_type) {
-        case NT_IF:
-          IND; printf("if_test:\n");
-          parse_tree_print(p->nd_if_test, indent + INDENT_SPACES);
-          IND; printf("then_branch:\n");
-          parse_tree_print(p->nd_if_then_branch, indent + INDENT_SPACES);
-          IND; printf("else_branch:\n");
-          parse_tree_print(p->nd_if_else_branch, indent + INDENT_SPACES);
-          break;
-        case NT_FN_DEF:
-          break;
-        case NT_CLOSUREIZE:
-          break;
-        case NT_SIMPLE_CLOSURE:
-          break;
-        case NT_PATT_CLOSURE:
-          break;
-        case NT_VAR_REF:
+        case NT_ASSIGN_OP:
+          IND(1); printf("-assign_var  : %s\n", p->nd_assign_var_name);
+          IND(1); printf("-assign_expr :\n");
+          parse_tree_print(p->nd_assign_expr, indent + INDENT_SPACES);
           break;
         case NT_NUM_CONST:
-          break;
-        case NT_SYM_CONST:
-          break;
-        case NT_PATT_SYM:
-          break;
-        case NT_PATT_VAR_REF:
-          break;
         case NT_PATT_NUM_CONST:
+          IND(1); printf("-num_const: %lf\n", p->nd_num_const);
           break;
-        case NT_PATT_BIND_VAR:
-          break;
-        case NT_PATT_APPLY:
-          break;
-        case NT_PATT_RESULT_PAIR:
-          break;
-        case NT_APPLY:
-          break;
-        case NT_RESULT:
+        default:
+          IND(1); printf("-unprintable\n");
           break;
       }
     }
@@ -111,6 +81,7 @@ void parse_tree_left_assoc(PARSE_TREE_NODE *np)
   }
 }
 
+// Not yet implemented.
 #define ERR_NYI(pstate)                                         \
   do {                                                          \
     sprintf((pstate)->pst_err_msg, "%s : NYI.", __FUNCTION__);  \
@@ -146,7 +117,9 @@ void parse_expect(uint8_t lx_type, PARSE_STATE *pstate)
 {
   if (lx_type != pstate->pst_lookahead.lx_type) {
     pstate->pst_status = S_LEX_ERROR;
-    sprintf(pstate->pst_err_msg, "Scanning error. Expected %s.", lx_name(lx_type));
+    sprintf(pstate->pst_err_msg, "Scanning error. Expected %s, but found: %s", lx_name(lx_type),
+            lx_name(pstate->pst_lookahead.lx_type));
+
     longjmp(pstate->pst_abort, 1);
   }
 }
@@ -154,48 +127,47 @@ void parse_expect(uint8_t lx_type, PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_create_binop(uint8_t op, PARSE_TREE_NODE *pleft, PARSE_TREE_NODE *pright,
                                     PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *retval;
-  retval = parse_alloc_node(pstate);
-  retval->nd_type = op;
-  retval->nd_binop_left_expr = pleft;
-  retval->nd_binop_right_expr = pright;
-  return retval;
+  PARSE_TREE_NODE *result;
+  result = parse_alloc_node(pstate);
+  result->nd_type = op;
+  result->nd_binop_left_expr = pleft;
+  result->nd_binop_right_expr = pright;
+  return result;
 }
 
 // Parser entry point.
 PARSE_TREE_NODE *parse_sputz_program(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *retval = NULL;
-  retval = parse_seq_expr(pstate);
+  PARSE_TREE_NODE *result = NULL;
+  result = parse_seq_expr(pstate);
   parse_expect(L_EOF, pstate);
-  return retval;
+  return result;
 }
 
 // seq-expr =  expr [';' seq-expr]
 PARSE_TREE_NODE *parse_seq_expr(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *retval = NULL;
-  retval = parse_expr(pstate);
+  PARSE_TREE_NODE *result = NULL;
+  result = parse_expr(pstate);
   while (L_SEQ == pstate->pst_lookahead.lx_type) {
-    PARSE_TREE_NODE *pleft = retval;
+    PARSE_TREE_NODE *pleft = result;
     PARSE_TREE_NODE *pright;
-    pleft = retval;
     // Skip ';'
     parse_scan_lx_unit(pstate);
     pright = parse_expr(pstate);
-    retval = parse_create_binop(NT_SEQ_OP, pleft, pright, pstate);
+    result = parse_create_binop(NT_SEQ_OP, pleft, pright, pstate);
   }
-  return retval;
+  return result;
 }
 
-// expr = ifExpr | resultExpr | assignExpr
+// expr = ifExpr | valueExpr | assignExpr
 PARSE_TREE_NODE *parse_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
   if (L_IF_KW == pstate->pst_lookahead.lx_type) {
     result = parse_if_expr(pstate);
-  } else if (L_RESULT_KW == pstate->pst_lookahead.lx_type) {
-    result = parse_result_expr(pstate);
+  } else if (L_VALUE_KW == pstate->pst_lookahead.lx_type) {
+    result = parse_value_expr(pstate);
   } else {
     result = parse_assign_expr(pstate);
   }
@@ -207,9 +179,17 @@ PARSE_TREE_NODE *parse_assign_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
   PARSE_TREE_NODE *expr = NULL;
-  char *var_name;
   parse_expect(L_VAR_NAME, pstate);
-  var_name = pstate->pst_lookahead.lx_pvar_name;
+  result = parse_alloc_node(pstate);
+  result->nd_type = NT_ASSIGN_OP;
+  // No strcpy necessary since all names permanently reside in the STRTAB.
+  result->nd_assign_var_name = pstate->pst_lookahead.lx_pvar_name;
+  // Skip L_VAR_NAME
+  parse_scan_lx_unit(pstate);
+  // Expect ':=' then skip over it.
+  parse_expect(L_ASSIGN, pstate);
+  parse_scan_lx_unit(pstate);
+  result->nd_assign_expr = parse_tuple_expr(pstate);
   return result;
 }
 
@@ -217,21 +197,19 @@ PARSE_TREE_NODE *parse_assign_expr(PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_if_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
   return result;
 }
 
-PARSE_TREE_NODE *parse_result_expr(PARSE_STATE *pstate)
+// valueExpr = 'valueis' expr
+PARSE_TREE_NODE *parse_value_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
   return result;
 }
 
 PARSE_TREE_NODE *parse_tuple_expr(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
+  PARSE_TREE_NODE *result = parse_number(pstate);
   return result;
 }
 
@@ -284,6 +262,7 @@ PARSE_TREE_NODE *parse_number(PARSE_STATE *pstate)
   result = parse_alloc_node(pstate);
   result->nd_type = NT_NUM_CONST;
   result->nd_num_const = pstate->pst_lookahead.lx_number;
+  // Skip to next lexical unit.
   parse_scan_lx_unit(pstate);
   return result;
 }
@@ -367,7 +346,6 @@ uint32_t parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppme
   ABORT_ON_NULL(*ppstrtab = strtab_new(*ppmem), INIT_MEM_FAIL1);
   pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab);
   result = pstate->pst_status;
-  DBG_PRINT_VAR(scode_name(result), STRING);
   return result;
   INIT_READ_FAIL: {
     return result;
@@ -393,7 +371,6 @@ void parse_fin(PARSE_STATE *pstate)
   }
 }
 
-//----------------------------------------------------------------------------------------------------------------------
 // Initialize GEN_READ *r from command-line parameters passed in.
 uint32_t init_gr(char test_type, char *arg, GEN_READ *r)
 {

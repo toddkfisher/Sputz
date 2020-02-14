@@ -109,7 +109,6 @@
 #define STRING  "\"%s\""
 
 #ifdef DEBUG
-#  define DBG_STUB(s) do { s; } while (0)
 #  define DBG_PRINT_VAR(v, fmt) printf(#v " == " fmt "\n", v);
 #  define DBG_PRINT(args, ...) printf(args, __VA_ARGS__)
 #  define DBG_PRINT_FN printf("In %s()\n", __FUNCTION__)
@@ -118,7 +117,6 @@
 #  define DBG_ENTER printf("Entering: %s()\n", __FUNCTION__)
 #  define DBG_LEAVE printf("Leaving: %s()\n", __FUNCTION__)
 #else
-#  define DBG_STUB(s) printf("STUB '%s' only active in DEBUG mode.\n")
 #  define DBG_PRINT_VAR(v, fmt) do { } while (0)
 #  define DBG_PRINT(args, ...) do { } while (0)
 #  define DBG_PRINT_FN do { } while (0)

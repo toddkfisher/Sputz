@@ -30,7 +30,7 @@ struct PARSE_TREE_NODE {
     };
     // NT_CLOSUREIZE
     uint32_t nd_closureize_token;
-    // NT_ASSIGN
+    // NT_ASSIGN_OP
     struct {
       char *nd_assign_var_name;
       PARSE_TREE_NODE *nd_assign_expr;
@@ -72,9 +72,11 @@ struct PARSE_TREE_NODE {
     PARSE_TREE_NODE *nd_closure_expr;
     // NT_APPLY
     struct {
-      PARSE_TREE_NODE *nd_app_fn;
+      PARSE_TREE_NODE *nd_app_closure;
       PARSE_TREE_NODE *nd_app_args_expr;
     };
+    // NT_VALUE
+    PARSE_TREE_NODE *nd_value_expr;
   };
 };
 

@@ -5,8 +5,6 @@ char *g_lex_unit_names[] ={
 #include "enum-L.h"
 };
 
-STRTAB *g_pstrtab = NULL;
-
 char *lx_name(uint32_t lx_type)
 {
   char *result = "UNKNOWN_LEXICAL_TYPE";
@@ -54,18 +52,18 @@ struct {
   char *kw_name;
   uint8_t kw_type;
 } g_keywords[]= {
-  "also",   L_ALSO_KW,
-  "and",    L_AND_KW,
-  "bind",   L_BIND_KW,
-  "else",   L_ELSE_KW,
-  "if",     L_IF_KW,
-  "not",    L_NOT_KW,
-  "null",   L_NULL_KW,
-  "or",     L_OR_KW,
-  "outer",  L_OUTER_KW,
-  "result", L_RESULT_KW,
-  "then",   L_THEN_KW,
-  "",       0
+  "also",    L_ALSO_KW,
+  "and",     L_AND_KW,
+  "bind",    L_BIND_KW,
+  "else",    L_ELSE_KW,
+  "if",      L_IF_KW,
+  "not",     L_NOT_KW,
+  "null",    L_NULL_KW,
+  "or",      L_OR_KW,
+  "outer",   L_OUTER_KW,
+  "then",    L_THEN_KW,
+  "valueis", L_VALUE_KW,
+  "",        0
 };
 
 uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
@@ -224,7 +222,7 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
     plx->lx_type = L_UNKNOWN;
     retval = LX_UNKNOWN_CHAR;
   }
-#if defined(DEBUG)
+#if 0
   if (!scode_is_error(retval)) {
     printf("Lexical unit scanned:\n");
     lx_print(plx);
