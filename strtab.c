@@ -46,16 +46,16 @@ static char *strtab_insert_string(STRTAB *st, char *str)
   return result;
 }
 
-static bool strtab_exists(STRTAB *st, char *s)
+static char *strtab_exists(STRTAB *st, char *s)
 {
   uint32_t h;
-  bool result;
+  char *result = NULL;
   STRREC *prec;
   result = false;
   h = strtab_hash(s);
   for (prec = st->st_htab[h]; !result && NULL != prec; prec = prec->sr_next) {
     if (STREQ(s, prec->sr_string)) {
-      result = true;
+      result = prec->sr_string;
     }
   }
   return result;
@@ -68,7 +68,7 @@ uint8_t strtab_insert(STRTAB *st, char *s, char **ppstr)
   STRREC *prec;
   uint32_t result;
   result = ST_UNABLE_TO_INSERT;
-  if (!strtab_exists(st, s)) {
+  if (NULL == (*ppstr = strtab_exists(st, s))) {
     ABORT_ON_NULL(pnewrec = strtab_new_rec(st), MEM_OVERFLOW0);
     ABORT_ON_NULL(*ppstr = strtab_insert_string(st, s), MEM_OVERFLOW1);
     pnewrec->sr_string = *ppstr;

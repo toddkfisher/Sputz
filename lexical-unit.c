@@ -17,18 +17,18 @@ char *lx_name(uint32_t lx_type)
 void lx_print(LEX_UNIT *plx)
 {
   printf("LEX_UNIT {\n");
-  printf("  lx_line_n == %u\n", plx->lx_line_n);
-  printf("  lx_col_n  == %u\n", plx->lx_col_n);
-  printf("  lx_type == %s,\n", g_lex_unit_names[plx->lx_type]);
-  switch (plx->lx_type) {
+  printf("  lx_line_n == %u\n", plx->lex_line_n);
+  printf("  lx_col_n  == %u\n", plx->lex_col_n);
+  printf("  lx_type == %s,\n", g_lex_unit_names[plx->lex_type]);
+  switch (plx->lex_type) {
     case L_NUMBER:
-      printf("  lx_number == %g,\n", plx->lx_number);
+      printf("  lx_number == %g,\n", plx->lex_number);
       break;
     case L_VAR_NAME:
-      printf("  lx_var_name == \"%s\",\n", plx->lx_pvar_name);
+      printf("  lx_var_name == \"%s\",\n", plx->lex_pvar_name);
       break;
     case L_SYMBOL:
-      printf("  lx_sym == \"%s\",\n", plx->lx_psym_name);
+      printf("  lx_sym == \"%s\",\n", plx->lex_psym_name);
       break;
     default:
       break;
@@ -66,13 +66,292 @@ struct {
   "",        0
 };
 
+typedef uint32_t (*LX_SCAN_FN)(GEN_READ *, LEX_UNIT *, STRTAB *);
+
+uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *strtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  char ch;
+  // Skip '!'
+  gr_get_char(pinput, &ch);
+  if (gr_get_char(pinput, &ch)) {
+    if ('!' == ch) {
+      plx->lex_type = L_GUARD;
+    } else {
+      plx->lex_type = L_SUCH_THAT;
+      gr_putback_char(pinput, ch);
+    }
+  }
+  return result;
+}
+
+uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *strtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  char ch;
+  gr_get_char(pinput, &ch);
+  if ('~' == ch || isdigit(ch)) {
+    // L_NUMBER
+    // Numeric syntax:
+    // ['~']<digit>+['.'<digit>*][('e'|'E')['~']<digit>+]
+    int8_t mant_sign = 1;
+    int8_t exp_sign = 1;
+    int64_t int_part = 0;
+    int64_t exp_part = 0;
+    double frac_part = 0.0;
+    // **SIGN**
+    if ('~' == ch) {
+      mant_sign = -1;
+      // Use a harmless value for ch (to the 'do' loop below) to avoid more
+      // complicated code involving gr_get_char().
+      // And yes, that means that '~' alone is zero.
+      ch = '0';
+    }
+    // **INTEGER PART**
+    do {
+      int_part = int_part * 10 + ch - '0';
+    } while (gr_get_char(pinput, &ch) && isdigit(ch));
+    // **FRACTIONAL PART**
+    if (!gr_eof(pinput) && '.' == ch) {
+      double d = 10.0;
+      while (gr_get_char(pinput, &ch) && isdigit(ch)) {
+        frac_part += (ch - '0') / d;
+        d *= 10;
+      }
+    }
+    // **EXPONENT**
+    if (!gr_eof(pinput) && ('e' == ch || 'E' == ch)) {
+      gr_get_char(pinput, &ch);
+      if ('~' == ch) {
+        exp_sign = -1;
+        gr_get_char(pinput, &ch);
+      }
+      while (!gr_eof(pinput) && isdigit(ch)) {
+        exp_part = exp_part * 10 + ch - '0';
+        gr_get_char(pinput, &ch);
+      }
+    }
+    if (!gr_eof(pinput)) {
+      gr_putback_char(pinput, ch);
+    }
+    plx->lex_type = L_NUMBER;
+    plx->lex_number = mant_sign*(int_part + frac_part)*pow(10.0, exp_sign*exp_part);
+    result = LX_SCAN_OK;
+  }
+  return result;
+}
+
+uint32_t lx_scan_assign(GEN_READ *input, LEX_UNIT *plx, STRTAB *strtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  return result;
+}
+
+uint32_t lx_scan_relop(GEN_READ *input, LEX_UNIT *plx, STRTAB *strtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  return result;
+}
+
+uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  char *pname = lx_scan_generic_name(pinput, pstrtab);
+  if (NULL != pname) {
+    plx->lex_psym_name = pname;
+    plx->lex_type = L_SYMBOL;
+  } else {
+    result = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
+  }
+  return result;
+}
+
+// Return pointer to name in string table (strtab).
+// At least one character must remain to be input.
+char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
+{
+  char name[MAX_STR];
+  char ch;
+  uint32_t n_chars = 0;
+  char *result = NULL;
+  gr_get_char(pinput, &ch);
+  do {
+    if (n_chars < MAX_STR - 1) {
+      name[n_chars++] = ch;
+    } else if (MAX_STR - 1 == n_chars) {
+      name[n_chars++] = '\0';
+    }
+  } while (gr_get_char(pinput, &ch) && IS_NAME_CHAR(ch));
+  if (n_chars <= MAX_STR - 1) {
+    name[n_chars] = '\0';
+  }
+  if (EOF != ch && !gr_eof(pinput)) {
+    gr_putback_char(pinput, ch);
+  }
+  // Not checking return code since result will be NULL if insert fails and NULL is
+  // this function's return value for an error.
+  strtab_insert(pstrtab, name, &result);
+  return result;
+}
+
+uint32_t lx_scan_var_name(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  char *pname = lx_scan_generic_name(pinput, pstrtab);
+  if (NULL != pname) {
+    plx->lex_pvar_name = pname;
+    plx->lex_type = L_VAR_NAME;
+  } else {
+    result = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
+  }
+  return result;
+}
+
+uint32_t lx_scan_star(GEN_READ *input, LEX_UNIT *plx, STRTAB *strtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  return result;
+}
+
+// Map: character -> lexical unit code (if single char) OR
+//                   scanning function (if multi char)
+struct {
+  char ch;
+  bool is_multi_char;
+  union {
+    // If not multi char,
+    uint32_t lex_unit_code;
+    // If multi char,
+    LX_SCAN_FN scanfn;
+  };
+} g_scan_map[] = {
+    ['!' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_exclamation  },
+    ['"' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['#' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['$' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['%' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_MOD         },
+    ['&' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['\'' - '!'] =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['(' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_LPAREN      },
+    [')' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_RPAREN      },
+    ['*' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_star         },
+    ['+' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_PLUS        },
+    [',' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_TUPLECAT    },
+    ['-' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_MINUS       },
+    ['.' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['/' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_DIVIDE      },
+    ['0' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['1' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['2' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['3' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['4' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['5' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['6' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['7' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['8' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    ['9' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       },
+    [':' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_assign       },
+    [';' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_SEQ         },
+    ['<' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop        },
+    ['=' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop        },
+    ['>' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop        },
+    ['?' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['@' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['A' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['B' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['C' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['D' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['E' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['F' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['G' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['H' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['I' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['J' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['K' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['L' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['M' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['N' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['O' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['P' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['Q' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['R' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['S' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['T' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['U' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['V' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['W' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['X' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['Y' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['Z' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol       },
+    ['[' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['\\' - '!'] =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    [']' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['^' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN     },
+    ['_' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['`' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_CLOSUREIZE  },
+    ['a' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['b' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['c' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['d' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['e' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['f' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['g' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['h' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['i' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['j' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['k' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['l' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['m' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['n' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['o' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['p' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['q' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['r' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['s' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['t' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['u' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['v' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['w' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['x' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['y' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['z' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name     },
+    ['{' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_FN_BEGIN    },
+    ['|' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_PATTERN_ALT },
+    ['}' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_FN_END      },
+    ['~' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number       }
+};
+
+// Driver for various lexical unit scanners.
 uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t retval = LX_UNKNOWN_CHAR;
   char ch;
   lx_skip_whitespace(pinput);
-  plx->lx_line_n = pinput->gr_line_n;
-  plx->lx_col_n = pinput->gr_col_n;
+  plx->lex_line_n = pinput->gr_line_n;
+  plx->lex_col_n = pinput->gr_col_n;
+  if (gr_get_char(pinput, &ch)) {
+    if (g_scan_map[ch - '!'].is_multi_char) {
+      // Put character back onto input so that it will be seen by scanfn.
+      gr_putback_char(pinput, ch);
+      retval = (*g_scan_map[ch - '!'].scanfn)(pinput, plx, pstrtab);
+    } else {
+      retval = LX_SCAN_OK;
+      plx->lex_type = g_scan_map[ch - '!'].lex_unit_code;
+      // Skip single character since scan is complete.
+      gr_get_char(pinput, &ch);
+    }
+  }
+  return retval;
+}
+
+#if 0
+uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+{
+  uint32_t retval = LX_UNKNOWN_CHAR;
+  char ch;
+  lx_skip_whitespace(pinput);
+  plx->lex_line_n = pinput->gr_line_n;
+  plx->lex_col_n = pinput->gr_col_n;
   if (gr_get_char(pinput, &ch)) {
     if (';' == ch) {
       plx->lx_type = L_SEQ;
@@ -128,53 +407,7 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
         plx->lx_type = L_ASSIGN;
         retval = LX_SCAN_OK;
       }
-    } else if ('~' == ch || isdigit(ch)) {
-      // L_NUMBER
-      // Numeric syntax:
-      // ['~']<digit>+['.'<digit>*][('e'|'E')['~']<digit>+]
-      int8_t mant_sign = 1;
-      int8_t exp_sign = 1;
-      int64_t int_part = 0;
-      int64_t exp_part = 0;
-      double frac_part = 0.0;
-      // **SIGN**
-      if ('~' == ch) {
-        mant_sign = -1;
-        // Use a harmless value for c to avoid more
-        // complicated code involving gr_get_char()
-        ch = '0';
-      }
-      // **INTEGER PART**
-      do {
-        int_part = int_part * 10 + ch - '0';
-      } while (gr_get_char(pinput, &ch) && isdigit(ch));
-      // **FRACTIONAL PART**
-      if (!gr_eof(pinput) && '.' == ch) {
-        double d = 10.0;
-        while (gr_get_char(pinput, &ch) && isdigit(ch)) {
-          frac_part += (ch - '0') / d;
-          d *= 10;
-        }
-      }
-      // **EXPONENT**
-      if (!gr_eof(pinput) && ('e' == ch || 'E' == ch)) {
-        gr_get_char(pinput, &ch);
-        if ('~' == ch) {
-          exp_sign = -1;
-          gr_get_char(pinput, &ch);
-        }
-        while (!gr_eof(pinput) && isdigit(ch)) {
-          exp_part = exp_part * 10 + ch - '0';
-          gr_get_char(pinput, &ch);
-        }
-      }
-      if (!gr_eof(pinput)) {
-        gr_putback_char(pinput, ch);
-      }
-      plx->lx_type = L_NUMBER;
-      plx->lx_number = mant_sign*(int_part + frac_part)*pow(10.0, exp_sign*exp_part);
-      retval = LX_SCAN_OK;
-    } else if (isalpha(ch)) {
+    }  else if (isalpha(ch)) {
       // L_SYMBOL or L_VAR_NAME or L_..._KW
       uint32_t n_chars = 0;
       char name[MAX_STR];
@@ -203,7 +436,7 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
         plx->lx_type = L_VAR_NAME;
         for (uint8_t i = 0; L_VAR_NAME == plx->lx_type && !STREQ("", g_keywords[i].kw_name); ++i) {
           if (STREQ(name, g_keywords[i].kw_name)) {
-            plx->lx_type = g_keywords[i].kw_type;
+            retval = plx->lx_type = g_keywords[i].kw_type;
           }
         }
       }
@@ -222,57 +455,29 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
     plx->lx_type = L_UNKNOWN;
     retval = LX_UNKNOWN_CHAR;
   }
-#if 0
+#if defined(DEBUG)
   if (!scode_is_error(retval)) {
     printf("Lexical unit scanned:\n");
     lx_print(plx);
   } else {
-    printf("Unrecognized: (%c).\n", ch);
+    printf("Error: %s (%c) (%02d).\n", scode_name(retval), ch, ch);
+    printf("Line: %u, char: %u\n", pinput->gr_line_n, pinput->gr_col_n);
   }
 #endif
   return retval;
 }
+#endif
 
 #if defined(TEST_LEX)
-
-//----------------------------------------------------------------------------------------------------------------------
-// Initialize GEN_READ *r from command-line parameters passed in.
-static void init_gr(char test_type, char *arg, GEN_READ *r)
-{
-  switch (test_type) {
-    case 'f':
-      if (!gr_open_file(r, arg)) {
-        fprintf(stderr, "Can't open %s\n", arg);
-        exit(0);
-      }
-      break;
-    case 's':
-      if (!gr_open_str(r, arg)) {
-        fprintf(stderr, "Can't initialize with string.\n");
-        exit(0);
-      }
-      break;
-#if 0
-    case 'r':
-      if (!gr_open_rdln(r, arg)) {
-        fprintf(stderr, "Can't initialize with readline.\n");
-        exit(0);
-      }
-      break;
-#endif
-    default:
-      fprintf(stderr, "Unrecognized input type: %c\n", test_type);
-      exit(0);
-      break;
-  }
-}
 
 int main(int argc, char **argv)
 {
   GEN_READ gr;
   LEX_UNIT lx;
+  ARENA *pmem = stkalloc_new_arena(MIB(10));
+  STRTAB *pstrtab = strtab_new(pmem);
   init_gr(*argv[1], argv[2], &gr);
-  while (LX_SCAN_OK == lx_scan_next(&gr, &lx)) {
+  while (LX_SCAN_OK == lx_scan_next(&gr, &lx, pstrtab)) {
     lx_print(&lx);
   }
   gr_close(&gr);

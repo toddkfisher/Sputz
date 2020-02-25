@@ -115,13 +115,19 @@ PARSE_TREE_NODE *parse_alloc_node(PARSE_STATE *pstate)
 
 void parse_expect(uint8_t lx_type, PARSE_STATE *pstate)
 {
-  if (lx_type != pstate->pst_lookahead.lx_type) {
+  if (lx_type != pstate->pst_lookahead.lex_type) {
     pstate->pst_status = S_LEX_ERROR;
     sprintf(pstate->pst_err_msg, "Scanning error. Expected %s, but found: %s", lx_name(lx_type),
-            lx_name(pstate->pst_lookahead.lx_type));
+            lx_name(pstate->pst_lookahead.lex_type));
 
     longjmp(pstate->pst_abort, 1);
   }
+}
+
+void parse_expect_and_skip(uint8_t lx_type, PARSE_STATE *pstate)
+{
+  parse_expect(lx_type, pstate);
+  parse_scan_lx_unit(pstate);
 }
 
 PARSE_TREE_NODE *parse_create_binop(uint8_t op, PARSE_TREE_NODE *pleft, PARSE_TREE_NODE *pright,
@@ -149,7 +155,7 @@ PARSE_TREE_NODE *parse_seq_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
   result = parse_expr(pstate);
-  while (L_SEQ == pstate->pst_lookahead.lx_type) {
+  while (L_SEQ == pstate->pst_lookahead.lex_type) {
     PARSE_TREE_NODE *pleft = result;
     PARSE_TREE_NODE *pright;
     // Skip ';'
@@ -164,9 +170,9 @@ PARSE_TREE_NODE *parse_seq_expr(PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
-  if (L_IF_KW == pstate->pst_lookahead.lx_type) {
+  if (L_IF_KW == pstate->pst_lookahead.lex_type) {
     result = parse_if_expr(pstate);
-  } else if (L_VALUE_KW == pstate->pst_lookahead.lx_type) {
+  } else if (L_VALUE_KW == pstate->pst_lookahead.lex_type) {
     result = parse_value_expr(pstate);
   } else {
     result = parse_assign_expr(pstate);
@@ -183,20 +189,27 @@ PARSE_TREE_NODE *parse_assign_expr(PARSE_STATE *pstate)
   result = parse_alloc_node(pstate);
   result->nd_type = NT_ASSIGN_OP;
   // No strcpy necessary since all names permanently reside in the STRTAB.
-  result->nd_assign_var_name = pstate->pst_lookahead.lx_pvar_name;
+  result->nd_assign_var_name = pstate->pst_lookahead.lex_pvar_name;
   // Skip L_VAR_NAME
   parse_scan_lx_unit(pstate);
   // Expect ':=' then skip over it.
-  parse_expect(L_ASSIGN, pstate);
-  parse_scan_lx_unit(pstate);
+  parse_expect_and_skip(L_ASSIGN, pstate);
   result->nd_assign_expr = parse_tuple_expr(pstate);
   return result;
 }
 
-// ifExpr = 'if' assignExpr 'then' assignExpr 'else' assignExpr
+// ifExpr = 'if' tupleExpr 'then' expr 'else' expr
 PARSE_TREE_NODE *parse_if_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
+  parse_expect_and_skip(L_IF_KW, pstate);
+  result = parse_alloc_node(pstate);
+  result->nd_type = NT_IF;
+  result->nd_if_test = parse_tuple_expr(pstate);
+  parse_expect_and_skip(L_THEN_KW, pstate);
+  result->nd_if_then_branch = parse_tuple_expr(pstate);
+  parse_expect_and_skip(L_ELSE_KW, pstate);
+  result->nd_if_else_branch = parse_tuple_expr(pstate);
   return result;
 }
 
@@ -261,7 +274,7 @@ PARSE_TREE_NODE *parse_number(PARSE_STATE *pstate)
   parse_expect(L_NUMBER, pstate);
   result = parse_alloc_node(pstate);
   result->nd_type = NT_NUM_CONST;
-  result->nd_num_const = pstate->pst_lookahead.lx_number;
+  result->nd_num_const = pstate->pst_lookahead.lex_number;
   // Skip to next lexical unit.
   parse_scan_lx_unit(pstate);
   return result;
@@ -341,7 +354,8 @@ uint32_t parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppme
   STRTAB **ppstrtab)
 {
   uint32_t result = S_OK;
-  ABORT_ON_FALSE(S_OK == (result = init_gr(test_type, arg, &pstate->pst_input)), INIT_READ_FAIL);
+  // init_gr() is temporary here so don't check for errors when calling it.
+  init_gr(test_type, arg, &pstate->pst_input);
   ABORT_ON_NULL(*ppmem = stkalloc_new_arena(MIB(10)), INIT_MEM_FAIL0);
   ABORT_ON_NULL(*ppstrtab = strtab_new(*ppmem), INIT_MEM_FAIL1);
   pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab);
@@ -365,39 +379,10 @@ void parse_fin(PARSE_STATE *pstate)
   gr_close(&pstate->pst_input);
   pstate->pst_status = S_OK;
   strcpy(pstate->pst_err_msg, "");
-  pstate->pst_lookahead.lx_type = L_UNKNOWN;
+  pstate->pst_lookahead.lex_type = L_UNKNOWN;
   if (NULL != pstate->pst_pmem) {
     stkalloc_free_arena(pstate->pst_pmem);
   }
-}
-
-// Initialize GEN_READ *r from command-line parameters passed in.
-uint32_t init_gr(char test_type, char *arg, GEN_READ *r)
-{
-  uint32_t result = S_OK;
-  switch (test_type) {
-    case 'f':
-      if (!gr_open_file(r, arg)) {
-        result = S_UNABLE_TO_OPEN_FILE;
-      }
-      break;
-    case 's':
-      if (!gr_open_str(r, arg)) {
-        result = S_UNABLE_TO_OPEN_STRING;
-      }
-      break;
-#if 0
-    case 'r':
-      if (!gr_open_rdln(r, arg)) {
-        result = S_UNABLE_TO_OPEN_READLINE;
-      }
-      break;
-#endif
-    default:
-      result = S_UNKNOWN_INPUT_TYPE;
-      break;
-  }
-  return result;
 }
 
 #if defined(TEST_PARSE)

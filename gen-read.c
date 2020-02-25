@@ -283,8 +283,6 @@ void gr_close(GEN_READ *r)
   }
 }
 
-#ifdef TEST_INPUT
-
 //------------------------------------------------------------------------------
 // Initialize GEN_READ *r from command-line parameters passed in.
 void init_gr(char test_type, char *arg, GEN_READ *r)
@@ -316,6 +314,8 @@ void init_gr(char test_type, char *arg, GEN_READ *r)
       break;
   }
 }
+
+#ifdef TEST_INPUT
 
 int main(int argc, char **argv)
 {
