@@ -68,7 +68,9 @@ struct {
 
 typedef uint32_t (*LX_SCAN_FN)(GEN_READ *, LEX_UNIT *, STRTAB *);
 
-uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *strtab)
+// '!'  --> L_SUCH_THAT
+// '!!' --> L_GUARD
+uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t result = LX_SCAN_OK;
   char ch;
@@ -85,15 +87,15 @@ uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *strtab)
   return result;
 }
 
-uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *strtab)
+// L_NUMBER
+// Numeric syntax:
+// ['~']<digit>+['.'<digit>*][('e'|'E')['~']<digit>+]
+uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t result = LX_SCAN_OK;
   char ch;
   gr_get_char(pinput, &ch);
   if ('~' == ch || isdigit(ch)) {
-    // L_NUMBER
-    // Numeric syntax:
-    // ['~']<digit>+['.'<digit>*][('e'|'E')['~']<digit>+]
     int8_t mant_sign = 1;
     int8_t exp_sign = 1;
     int64_t int_part = 0;
@@ -141,15 +143,57 @@ uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *strtab)
   return result;
 }
 
-uint32_t lx_scan_assign(GEN_READ *input, LEX_UNIT *plx, STRTAB *strtab)
+// ':=' --> L_ASSIGN
+uint32_t lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t result = LX_SCAN_OK;
+  char ch;
+  // skip over ':'
+  gr_get_char(pinput, &ch);
+  if (gr_eof(pinput) || !gr_get_char(pinput, &ch) || '=' != ch) {
+    result = LX_UNKNOWN_CHAR;
+  } else {
+    plx->lex_type = L_ASSIGN;
+  }
   return result;
 }
 
-uint32_t lx_scan_relop(GEN_READ *input, LEX_UNIT *plx, STRTAB *strtab)
+// '>'  --> L_GT
+// '>=' --> L_GE
+// '<'  --> L_LT
+// '<=' --> L_LE
+// '='  --> L_EQ
+// '<>' --> L_NE
+uint32_t lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t result = LX_SCAN_OK;
+  char ch;
+  char next_ch;
+  gr_get_char(pinput, &ch);
+  switch (ch) {
+    case '>':
+    case '<':
+      if (gr_eof(pinput) || !gr_get_char(pinput, &next_ch)) {
+        plx->lex_type = ('>' == ch ? L_GT : L_LT);
+      } else if ('=' == next_ch) {
+        // '>=' || '<='
+        plx->lex_type = ('>' == ch ? L_GE : L_LE);
+      } else if ('<' == ch && '>' == next_ch) {
+        // '<>'
+        plx->lex_type = L_NE;
+      } else {
+        // ('<' | '>') <some random character>
+        plx->lex_type = ('>' == ch ? L_GT : L_LT);
+        gr_putback_char(pinput, next_ch);
+      }
+      break;
+    case '=':
+      plx->lex_type = L_EQ;
+      break;
+    default:
+      result = LX_UNKNOWN_CHAR;
+      break;
+  }
   return result;
 }
 
@@ -166,8 +210,8 @@ uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   return result;
 }
 
-// Return pointer to name in string table (strtab).
-// At least one character must remain to be input.
+// Return pointer to name in string table (pstrtab).
+// At least one character must remain to be pinput.
 char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
 {
   char name[MAX_STR];
@@ -207,7 +251,7 @@ uint32_t lx_scan_var_name(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   return result;
 }
 
-uint32_t lx_scan_star(GEN_READ *input, LEX_UNIT *plx, STRTAB *strtab)
+uint32_t lx_scan_star(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t result = LX_SCAN_OK;
   return result;
@@ -331,7 +375,7 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   plx->lex_col_n = pinput->gr_col_n;
   if (gr_get_char(pinput, &ch)) {
     if (g_scan_map[ch - '!'].is_multi_char) {
-      // Put character back onto input so that it will be seen by scanfn.
+      // Put character back onto pinput so that it will be seen by scanfn.
       gr_putback_char(pinput, ch);
       retval = (*g_scan_map[ch - '!'].scanfn)(pinput, plx, pstrtab);
     } else {

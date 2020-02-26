@@ -30,6 +30,12 @@ ENUM(L_TIMES),        // '*'  Operator
 ENUM(L_POWER),        // '**' Operator
 ENUM(L_DIVIDE),       // '/'  Operator
 ENUM(L_MOD),          // '%'  Operator
+ENUM(L_GT),           // '>'  Operator
+ENUM(L_GE),           // '>=' Operator
+ENUM(L_LT),           // '<'  Operator
+ENUM(L_LE),           // '<=' Operator
+ENUM(L_EQ),           // '='  Operator
+ENUM(L_NE),           // '<>' Operator
 ENUM(L_CLOSUREIZE),   // '`'  Syntax
 ENUM(L_PATTERN_ALT),  // '|'  Syntax
 ENUM(L_UNKNOWN),
