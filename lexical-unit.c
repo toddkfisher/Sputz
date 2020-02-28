@@ -200,19 +200,6 @@ uint32_t lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   return result;
 }
 
-uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
-{
-  uint32_t result = LX_SCAN_OK;
-  char *pname = lx_scan_generic_name(pinput, pstrtab);
-  if (NULL != pname) {
-    plx->lex_psym_name = pname;
-    plx->lex_type = L_SYMBOL;
-  } else {
-    result = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
-  }
-  return result;
-}
-
 // Return pointer to name in string table (pstrtab).
 // At least one character must remain to be pinput.
 char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
@@ -238,6 +225,19 @@ char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
   // Not checking return code since result will be NULL if insert fails and NULL is
   // this function's return value for an error.
   strtab_insert(pstrtab, name, &result);
+  return result;
+}
+
+uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+{
+  uint32_t result = LX_SCAN_OK;
+  char *pname = lx_scan_generic_name(pinput, pstrtab);
+  if (NULL != pname) {
+    plx->lex_psym_name = pname;
+    plx->lex_type = L_SYMBOL;
+  } else {
+    result = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
+  }
   return result;
 }
 
@@ -377,7 +377,10 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   lx_skip_whitespace(pinput);
   plx->lex_line_n = pinput->gr_line_n;
   plx->lex_col_n = pinput->gr_col_n;
-  if (gr_get_char(pinput, &ch)) {
+  if (gr_eof(pinput)) {
+    plx->lex_type = L_EOF;
+    retval = LX_SCAN_OK;
+  } else if (gr_get_char(pinput, &ch)) {
     if (g_scan_map[ch - '!'].is_multi_char) {
       // Put character back onto pinput so that it will be seen by scanfn.
       gr_putback_char(pinput, ch);
@@ -391,130 +394,6 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   }
   return retval;
 }
-
-#if 0
-uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
-{
-  uint32_t retval = LX_UNKNOWN_CHAR;
-  char ch;
-  lx_skip_whitespace(pinput);
-  plx->lex_line_n = pinput->gr_line_n;
-  plx->lex_col_n = pinput->gr_col_n;
-  if (gr_get_char(pinput, &ch)) {
-    if (';' == ch) {
-      plx->lx_type = L_SEQ;
-      retval = LX_SCAN_OK;
-    } else if ('+' == ch) {
-      plx->lx_type = L_PLUS;
-      retval = LX_SCAN_OK;
-    } else if ('-' == ch) {
-      plx->lx_type = L_MINUS;
-      retval = LX_SCAN_OK;
-    } else if ('`' == ch) {
-      plx->lx_type = L_CLOSUREIZE;
-      retval = LX_SCAN_OK;
-    } else if ('%' == ch) {
-      plx->lx_type = L_MOD;
-      retval = LX_SCAN_OK;
-    } else if ('*' == ch) {
-      plx->lx_type = L_TIMES;
-      if (gr_get_char(pinput, &ch)) {
-        if ('*' == ch) {
-          plx->lx_type = L_POWER;
-        } else if (!gr_eof(pinput)) {
-          gr_putback_char(pinput, ch);
-        }
-        retval = LX_SCAN_OK;
-      }
-    } else if ('{' == ch) {
-      plx->lx_type = L_FN_BEGIN;
-      retval = LX_SCAN_OK;
-    } else if ('}' == ch) {
-      plx->lx_type = L_FN_END;
-      retval = LX_SCAN_OK;
-    } else if (',' == ch) {
-      plx->lx_type = L_TUPLECAT;
-      retval = LX_SCAN_OK;
-    } else if ('!' == ch) {
-      if (gr_get_char(pinput, &ch) && '!' == ch) {
-        plx->lx_type = L_GUARD;
-      } else {
-        if (!gr_eof(pinput)) {
-          gr_putback_char(pinput, ch);
-        }
-        plx->lx_type = L_SUCH_THAT;
-      }
-      retval = LX_SCAN_OK;
-    } else if ('=' == ch) {
-      if (gr_get_char(pinput, &ch) && '>' == ch) {
-        plx->lx_type = L_RESULT;
-        retval = LX_SCAN_OK;
-      }
-    } else if (':' == ch) {
-      if (gr_get_char(pinput, &ch) && '=' == ch) {
-        plx->lx_type = L_ASSIGN;
-        retval = LX_SCAN_OK;
-      }
-    }  else if (isalpha(ch)) {
-      // L_SYMBOL or L_VAR_NAME or L_..._KW
-      uint32_t n_chars = 0;
-      char name[MAX_STR];
-      do {
-        if (n_chars < MAX_STR - 1) {
-          name[n_chars] = ch;
-        } else if (MAX_STR - 1 == n_chars) {
-          name[n_chars] = '\0';
-        }
-        n_chars += 1;
-      } while (gr_get_char(pinput, &ch) && IS_NAME_CHAR(ch));
-      if (n_chars < MAX_STR - 1) {
-        name[n_chars] = '\0';
-      }
-      if (EOF != ch && !gr_eof(pinput)) {
-        gr_putback_char(pinput, ch);
-      }
-      if (isupper(name[0])) {
-        if (ST_UNABLE_TO_INSERT == strtab_insert(pstrtab, name, &plx->lx_psym_name)) {
-          retval = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
-        } else {
-          plx->lx_type = L_SYMBOL;
-          retval = LX_SCAN_OK;
-        }
-      } else {
-        plx->lx_type = L_VAR_NAME;
-        for (uint8_t i = 0; L_VAR_NAME == plx->lx_type && !STREQ("", g_keywords[i].kw_name); ++i) {
-          if (STREQ(name, g_keywords[i].kw_name)) {
-            retval = plx->lx_type = g_keywords[i].kw_type;
-          }
-        }
-      }
-      if (L_VAR_NAME == plx->lx_type) {
-        if (ST_UNABLE_TO_INSERT == strtab_insert(pstrtab, name, &plx->lx_pvar_name)) {
-          retval = LX_UNABLE_TO_SAVE_NAME_OR_STRING;
-        } else {
-          retval = LX_SCAN_OK;
-        }
-      }
-    }
-  } else if (gr_eof(pinput)) {
-    plx->lx_type = L_EOF;
-    retval = LX_SCAN_OK;
-  } else {
-    plx->lx_type = L_UNKNOWN;
-    retval = LX_UNKNOWN_CHAR;
-  }
-#if defined(DEBUG)
-  if (!scode_is_error(retval)) {
-    printf("Lexical unit scanned:\n");
-    lx_print(plx);
-  } else {
-    printf("Error: %s (%c) (%02d).\n", scode_name(retval), ch, ch);
-    printf("Line: %u, char: %u\n", pinput->gr_line_n, pinput->gr_col_n);
-  }
-#endif
-  return retval;
-}
-#endif
 
 #if defined(TEST_LEX)
 

@@ -47,12 +47,16 @@ void parse_tree_print(PARSE_TREE_NODE *p, uint8_t indent)
       switch (p->nd_type) {
         case NT_ASSIGN_OP:
           IND(1); printf("-assign_var  : %s\n", p->nd_assign_var_name);
-          IND(1); printf("-assign_expr :\n");
-          parse_tree_print(p->nd_assign_expr, indent + INDENT_SPACES);
+          IND(1); printf("-assign_expr :\n"); parse_tree_print(p->nd_assign_expr, indent + INDENT_SPACES);
           break;
         case NT_NUM_CONST:
         case NT_PATT_NUM_CONST:
           IND(1); printf("-num_const: %lf\n", p->nd_num_const);
+          break;
+        case NT_IF:
+          IND(1); printf("-if_test     :\n"); parse_tree_print(p->nd_if_test, indent + INDENT_SPACES);
+          IND(1); printf("-then_branch :\n"); parse_tree_print(p->nd_if_then_branch, indent + INDENT_SPACES);
+          IND(1); printf("-else_branch :\n"); parse_tree_print(p->nd_if_else_branch, indent + INDENT_SPACES);
           break;
         default:
           IND(1); printf("-unprintable\n");
@@ -92,9 +96,11 @@ void parse_tree_left_assoc(PARSE_TREE_NODE *np)
 // Scan the next lexical unit and store in PARSE_STATE
 void parse_scan_lx_unit(PARSE_STATE *pstate)
 {
-  if (LX_SCAN_OK != lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab)) {
+  uint32_t lex_return_code;
+  if (LX_SCAN_OK != (lex_return_code = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab))) {
     pstate->pst_status = S_LEX_ERROR;
-    strcpy(pstate->pst_err_msg, "Scanning error. Unable to read.");
+    sprintf(pstate->pst_err_msg, "Scanning error on line:%d col: %d - %s. Unable to read.", pstate->pst_lookahead.lex_line_n,
+            pstate->pst_lookahead.lex_col_n, scode_name(lex_return_code));
     longjmp(pstate->pst_abort, 1);
   }
 }
@@ -115,10 +121,10 @@ PARSE_TREE_NODE *parse_alloc_node(PARSE_STATE *pstate)
 
 void parse_expect(uint8_t lx_type, PARSE_STATE *pstate)
 {
-  if (lx_type != pstate->pst_lookahead.lex_type) {
+  if(lx_type != pstate->pst_lookahead.lex_type) {
     pstate->pst_status = S_LEX_ERROR;
-    sprintf(pstate->pst_err_msg, "Scanning error. Expected %s, but found: %s", lx_name(lx_type),
-            lx_name(pstate->pst_lookahead.lex_type));
+    sprintf(pstate->pst_err_msg, "Scanning error. Expected %s, but found: %s, line: %d, col: %d", lx_name(lx_type),
+            lx_name(pstate->pst_lookahead.lex_type), pstate->pst_lookahead.lex_line_n, pstate->pst_lookahead.lex_col_n);
 
     longjmp(pstate->pst_abort, 1);
   }
@@ -131,7 +137,7 @@ void parse_expect_and_skip(uint8_t lx_type, PARSE_STATE *pstate)
 }
 
 PARSE_TREE_NODE *parse_create_binop(uint8_t op, PARSE_TREE_NODE *pleft, PARSE_TREE_NODE *pright,
-                                    PARSE_STATE *pstate)
+                                           PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result;
   result = parse_alloc_node(pstate);
@@ -145,6 +151,7 @@ PARSE_TREE_NODE *parse_create_binop(uint8_t op, PARSE_TREE_NODE *pleft, PARSE_TR
 PARSE_TREE_NODE *parse_sputz_program(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
+  DBG_PRINT_FN;
   result = parse_seq_expr(pstate);
   parse_expect(L_EOF, pstate);
   return result;
@@ -202,6 +209,7 @@ PARSE_TREE_NODE *parse_assign_expr(PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_if_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
+  DBG_PRINT_FN;
   parse_expect_and_skip(L_IF_KW, pstate);
   result = parse_alloc_node(pstate);
   result->nd_type = NT_IF;
@@ -351,7 +359,7 @@ PARSE_TREE_NODE *parse_pattern_data_constructor(PARSE_STATE *pstate)
 }
 
 uint32_t parse_init(PARSE_STATE *pstate, char test_type, char *arg, ARENA **ppmem,
-  STRTAB **ppstrtab)
+                    STRTAB **ppstrtab)
 {
   uint32_t result = S_OK;
   // init_gr() is temporary here so don't check for errors when calling it.

@@ -15,7 +15,7 @@ STRTAB *strtab_new(ARENA *pmem)
   return result;
 }
 
-static uint32_t strtab_hash(char *s)
+uint32_t strtab_hash(char *s)
 {
   uint64_t n = 0;
   while (*s) {
@@ -24,7 +24,7 @@ static uint32_t strtab_hash(char *s)
   return n%N_SLOTS;
 }
 
-static STRREC *strtab_new_rec(STRTAB *st)
+STRREC *strtab_new_rec(STRTAB *st)
 {
   STRREC *result = NULL;
   if (st->st_next_rec_idx < MAX_RECS) {
@@ -33,7 +33,7 @@ static STRREC *strtab_new_rec(STRTAB *st)
   return result;
 }
 
-static char *strtab_insert_string(STRTAB *st, char *str)
+char *strtab_insert_string(STRTAB *st, char *str)
 {
   uint32_t len;
   char *result = NULL;
@@ -46,7 +46,7 @@ static char *strtab_insert_string(STRTAB *st, char *str)
   return result;
 }
 
-static char *strtab_exists(STRTAB *st, char *s)
+char *strtab_exists(STRTAB *st, char *s)
 {
   uint32_t h;
   char *result = NULL;
@@ -89,27 +89,6 @@ uint8_t strtab_insert(STRTAB *st, char *s, char **ppstr)
   }
 }
 
-#if defined(TEST_STRTAB)
-
-char gen_rand_visible_char(void)
-{
-  int i;
-  char result = '\0';
-  result = rand()%(126 - 32 + 1) + 32;
-  return result;
-}
-
-char *gen_rand_str(void)
-{
-  int i;
-  int n = rand()%(MAX_STR - 1) + 1;
-  static char result[MAX_STR];
-  zero_mem(result, MAX_STR);
-  for (i = 0; i < n; ++i) {
-    result[i] = gen_rand_visible_char();
-  }
-  return result;
-}
 
 void strtab_print_stats(STRTAB *pstab)
 {
@@ -130,6 +109,28 @@ void strtab_print_stats(STRTAB *pstab)
   printf("         (over all slots)\n");
   printf("  st_n_strings_inserted    == %u\n", pstab->st_n_strings_inserted);
   printf("}\n");
+}
+
+#if defined(TEST_STRTAB)
+
+char gen_rand_visible_char(void)
+{
+  int i;
+  char result = '\0';
+  result = rand()%(126 - 32 + 1) + 32;
+  return result;
+}
+
+char *gen_rand_str(void)
+{
+  int i;
+  int n = rand()%(MAX_STR - 1) + 1;
+  static char result[MAX_STR];
+  zero_mem(result, MAX_STR);
+  for (i = 0; i < n; ++i) {
+    result[i] = gen_rand_visible_char();
+  }
+  return result;
 }
 
 #define N_STRINGS 5000

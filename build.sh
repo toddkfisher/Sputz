@@ -12,9 +12,9 @@ gcc -ggdb -DDEBUG -c stackalloc.c
 echo "Compiling: strtab.c"
 gcc -ggdb -DDEBUG -c strtab.c
 echo "Compiling: lexical-unit.c"
-gcc -ggdb -DTEST_LEX -DDEBUG -DNO_CPROTO -c lexical-unit.c
+gcc -ggdb -DDEBUG -DNO_CPROTO -c lexical-unit.c
 echo "Compiling: parse-tree.c"
-gcc -ggdb -DDEBUG -DNO_CPROTO -c parse-tree.c
+gcc -ggdb -DTEST_PARSE -DNO_CPROTO -c parse-tree.c
 echo "Compiling status-codes.c"
 gcc -ggdb -DDEBUG -DNO_CPROTO -c status-codes.c
 echo "Linking: spz"
