@@ -39,8 +39,8 @@ void lx_print(LEX_UNIT *plx)
 void lx_skip_whitespace(GEN_READ *pinput)
 {
   char ch = 0;
-  for (;gr_get_char(pinput, &ch) && isspace(ch);) {
-  }
+  while (gr_get_char(pinput, &ch) && isspace(ch))
+    ;
   if (ch && !gr_eof(pinput)) {
     gr_putback_char(pinput, ch);
   }
@@ -62,7 +62,7 @@ struct {
   "or",      L_OR_KW,
   "outer",   L_OUTER_KW,
   "then",    L_THEN_KW,
-  "valueis", L_VALUE_KW,
+  "value_is", L_VALUE_KW,
   "",        0
 };
 
@@ -388,8 +388,6 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
     } else {
       retval = LX_SCAN_OK;
       plx->lex_type = g_scan_map[ch - '!'].lex_unit_code;
-      // Skip single character since scan is complete.
-      gr_get_char(pinput, &ch);
     }
   }
   return retval;

@@ -1,33 +1,34 @@
 #+OPTIONS: toc:nil
-* WRITTEN repl
+* Sputz grammar
+** repl
   (seqexpr nl)*
-* WRITTEN seqExpr
+** seqExpr
   expr  (*;*  expr )*
-* WRITTEN expr
+** expr
   ifExpr       \\
   ‖ resultExpr \\
   ‖ assignExpr
-* WRITTEN assignExpr
+** assignExpr
   varName *:=* tupleExpr
-* TODO ifExpr
+** ifExpr
   *if* assignExpr *then* assignExpr *else* assignExpr
-* TODO valueExpr
+** valueExpr
   *value* tupleExpr
-* TODO tupleEpxr
+** tupleEpxr
   tupleComponent  (tupleCatOp tupleComponent )*
-* TODO tupleComponent
+** tupleComponent
   orTerm (orOp orTerm)*
-* TODO orTerm
+** orTerm
   andTerm (andOp andTerm)*
-* TODO andTerm
+** andTerm
   [notOp] compareTerm (compareOp compareTerm)*
-* TODO compareTerm
+** compareTerm
   term (addOp term)*
-* TODO term
+** term
   factor (multOp factor)*
-* TODO factor
+** factor
   basicFactor  (*(* [tupleExpr] *)*)*
-* TODO basicFactor
+** basicFactor
   ((*outer*)*  varName   \\
    ‖ number              \\
    ‖ symbol              \\
@@ -37,25 +38,25 @@
    ‖ *(* seqExpr *)*     \\
    ‖ *~* *(* seqExpr *)* \\
   )
-* TODO number
+** number
   [*~*]digit+[*.* digit+ ][(*e*‖*E*) [*~*] digit+]
-* TODO symbol
+** symbol
   upperCase (letter ‖ *_* ‖ digit ‖ *?* ‖ *!*)*
-* TODO varName
+** varName
   lowerCase (letter ‖ *_* ‖ digit ‖ *?* ‖ *!*)*
-* TODO dataConstructor
+** dataConstructor
   symbol *(* [tupleExpr] *)*
-* TODO application
+** application
   factor *(* [tupleExpr] *)*
-* TODO closure
+** closure
   *{* ( (*|* patternAlternative)* ‖ seqExpr) *}*
-* TODO patternAlternative
+** patternAlternative
   patternTuple [*!!* guard] *=>* seqExpr
-* TODO patternTuple
+** patternTuple
   [ patternTupleComponent (*,* patternTupleComponent)* ]
-* TODO patternTupleComponent
+** patternTupleComponent
   patternFactor [(*also* patternFactor)* *!* expr]
-* TODO patternFactor
+** patternFactor
   ((*outer*)+ [ *bind* ] var  \\
    ‖ symbol                 \\
    ‖ patternDataConstructor \\
@@ -64,5 +65,5 @@
    ‖ *(* patternTuple *)*   \\
   )                         \\
   [ *(* patternTuple *)* ]
-* TODO patternDataConstructor
+** patternDataConstructor
   symbol *(* patternTuple *)*
