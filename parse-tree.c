@@ -19,13 +19,23 @@ bool parse_is_binary_op(uint32_t type)
 
 
 
+// Note: type is lexical not parse tree (node type).
+bool parse_is_rel_op(uint32_t type)
+{
+  bool result = type > L_BEGIN_REL_OP && type < L_END_REL_OP;
+  return result;
+}
+
+
+
 void parse_print_binary_op(PARSE_TREE_NODE *p,
                            uint8_t indent)
 {
-  IND(2); printf("-left_expr:\n");
+  IND(1); printf("-left_expr:\n");
   parse_tree_print(p->nd_binop_left_expr,
                    indent + INDENT_SPACES);
-  IND(2); printf("-right_expr:\n");
+  IND(1);
+  printf("-right_expr:\n");
   parse_tree_print(p->nd_binop_right_expr,
                    indent + INDENT_SPACES);
 }
@@ -43,7 +53,8 @@ bool parse_is_unary_op(uint32_t type)
 void parse_print_unary_op(PARSE_TREE_NODE *p,
                           uint8_t indent)
 {
-  IND(2); printf("-unop_expr:\n");
+  IND(1);
+  printf("-unop_expr:\n");
   parse_tree_print(p->nd_unop_expr,
                    indent + INDENT_SPACES);
 }
@@ -207,6 +218,19 @@ PARSE_TREE_NODE *parse_create_binop(uint8_t op,
 
 
 
+PARSE_TREE_NODE *parse_create_unop(uint8_t op,
+                                   PARSE_TREE_NODE *puexpr,
+                                   PARSE_STATE *pstate)
+{
+  PARSE_TREE_NODE *result;
+  result = parse_alloc_node(pstate);
+  result->nd_type = op;
+  result->nd_unop_expr = puexpr;
+  return result;
+}
+
+
+
 // Parser entry point.
 PARSE_TREE_NODE *parse_sputz_program(PARSE_STATE *pstate)
 {
@@ -293,10 +317,10 @@ PARSE_TREE_NODE *parse_if_expr(PARSE_STATE *pstate)
 PARSE_TREE_NODE *parse_value_expr(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = NULL;
+  PARSE_TREE_NODE *puexpr = NULL;
   parse_expect_and_skip(L_VALUE_KW, pstate);
-  result = parse_alloc_node(pstate);
-  result->nd_type = NT_VALUE;
-  result->nd_value_expr = parse_tuple_expr(pstate);
+  puexpr = parse_tuple_expr(pstate);
+  result = parse_create_unop(NT_VALUE, puexpr, pstate);
   return result;
 }
 
@@ -356,9 +380,50 @@ PARSE_TREE_NODE *parse_or_term(PARSE_STATE *pstate)
 
 
 
+// andTerm = [notOp] compareTerm (compareOp compareTerm)?
 PARSE_TREE_NODE *parse_and_term(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *result = parse_number(pstate);
+  PARSE_TREE_NODE *result = NULL;
+  bool negated = false;
+  if (L_NOT_KW == pstate->pst_lookahead.lex_type) {
+    negated = true;
+    // Skip 'not'
+    parse_scan_lx_unit(pstate);
+  }
+  result = parse_compare_term(pstate);
+  if (parse_is_rel_op(pstate->pst_lookahead.lex_type)) {
+    PARSE_TREE_NODE *pleft = result;
+    PARSE_TREE_NODE *pright = NULL;
+    uint32_t lx_rel_op = pstate->pst_lookahead.lex_type;
+    uint32_t nt_rel_op;
+    // Skip relational operator
+    parse_scan_lx_unit(pstate);
+    switch (lx_rel_op) {
+      case L_GT:
+        nt_rel_op = NT_GT_OP;
+        break;
+      case L_GE:
+        nt_rel_op = NT_GE_OP;
+        break;
+      case L_LT:
+        nt_rel_op = NT_LT_OP;
+        break;
+      case L_LE:
+        nt_rel_op = NT_LE_OP;
+        break;
+      case L_EQ:
+        nt_rel_op = NT_EQ_OP;
+        break;
+      case L_NE:
+        nt_rel_op = NT_NE_OP;
+        break;
+    }
+    pright = parse_compare_term(pstate);
+    result = parse_create_binop(nt_rel_op, pleft, pright, pstate);
+  }
+  if (negated) {
+    result = parse_create_unop(NT_NOT_OP, result, pstate);
+  }
   return result;
 }
 
@@ -366,8 +431,7 @@ PARSE_TREE_NODE *parse_and_term(PARSE_STATE *pstate)
 
 PARSE_TREE_NODE *parse_compare_term(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
+  PARSE_TREE_NODE *result = parse_number(pstate);
   return result;
 }
 

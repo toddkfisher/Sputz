@@ -21,7 +21,7 @@
 ** orTerm
   andTerm (andOp andTerm)*
 ** andTerm
-  [notOp] compareTerm (compareOp compareTerm)*
+  [notOp] compareTerm (compareOp compareTerm)?
 ** compareTerm
   term (addOp term)*
 ** term
