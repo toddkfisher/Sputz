@@ -15,7 +15,7 @@
 ** valueExpr
   *value* tupleExpr
 ** tupleEpxr
-  tupleComponent  (tupleCatOp tupleComponent )*
+  tupleComponent (tupleCatOp tupleComponent )*
 ** tupleComponent
   orTerm (orOp orTerm)*
 ** orTerm
