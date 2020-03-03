@@ -15,6 +15,8 @@ STRTAB *strtab_new(ARENA *pmem)
   return result;
 }
 
+
+
 uint32_t strtab_hash(char *s)
 {
   uint64_t n = 0;
@@ -24,6 +26,8 @@ uint32_t strtab_hash(char *s)
   return n%N_SLOTS;
 }
 
+
+
 STRREC *strtab_new_rec(STRTAB *st)
 {
   STRREC *result = NULL;
@@ -32,6 +36,8 @@ STRREC *strtab_new_rec(STRTAB *st)
   }
   return result;
 }
+
+
 
 char *strtab_insert_string(STRTAB *st, char *str)
 {
@@ -45,6 +51,8 @@ char *strtab_insert_string(STRTAB *st, char *str)
   }
   return result;
 }
+
+
 
 char *strtab_exists(STRTAB *st, char *s)
 {
@@ -60,6 +68,8 @@ char *strtab_exists(STRTAB *st, char *s)
   }
   return result;
 }
+
+
 
 uint8_t strtab_insert(STRTAB *st, char *s, char **ppstr)
 {
@@ -89,6 +99,7 @@ uint8_t strtab_insert(STRTAB *st, char *s, char **ppstr)
   }
 }
 
+
 
 void strtab_print_stats(STRTAB *pstab)
 {
@@ -111,6 +122,8 @@ void strtab_print_stats(STRTAB *pstab)
   printf("}\n");
 }
 
+
+
 #if defined(TEST_STRTAB)
 
 char gen_rand_visible_char(void)
@@ -120,6 +133,8 @@ char gen_rand_visible_char(void)
   result = rand()%(126 - 32 + 1) + 32;
   return result;
 }
+
+
 
 char *gen_rand_str(void)
 {
@@ -133,10 +148,14 @@ char *gen_rand_str(void)
   return result;
 }
 
+
+
 #define N_STRINGS 5000
 
 char str_list[N_STRINGS][MAX_STR];
 char *inserted_pointer_list[N_STRINGS];
+
+
 
 int main(int argc, char **argv)
 {

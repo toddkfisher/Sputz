@@ -322,7 +322,16 @@ PARSE_TREE_NODE *parse_tuple_expr(PARSE_STATE *pstate)
 
 PARSE_TREE_NODE *parse_tuple_component(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *result = parse_number(pstate);
+  PARSE_TREE_NODE *result = NULL;
+  result = parse_or_term(pstate);
+  while (L_OR_KW == pstate->pst_lookahead.lex_type) {
+    PARSE_TREE_NODE *pleft = result;
+    PARSE_TREE_NODE *pright = NULL;
+    // Skip 'or'
+    parse_scan_lx_unit(pstate);
+    pright = parse_or_term(pstate);
+    result = parse_create_binop(NT_OR_OP, pleft, pright, pstate);
+  }
   return result;
 }
 
@@ -330,8 +339,7 @@ PARSE_TREE_NODE *parse_tuple_component(PARSE_STATE *pstate)
 
 PARSE_TREE_NODE *parse_or_term(PARSE_STATE *pstate)
 {
-  PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
+  PARSE_TREE_NODE *result = parse_number(pstate);
   return result;
 }
 

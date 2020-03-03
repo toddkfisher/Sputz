@@ -4,6 +4,8 @@
 // memory arena or down to a certain location.  It was written to be used with a parser where a failed
 // forces freeing an parse tree or branch thereof.
 
+
+
 ARENA *stkalloc_new_arena(size_t arena_size)
 {
   ARENA *retval;
@@ -24,11 +26,15 @@ ARENA *stkalloc_new_arena(size_t arena_size)
   return retval;
 }
 
+
+
 void *stkalloc_get_checkpoint(ARENA *par)
 {
   par->ar_n_checkpoints += 1;
   return par->ar_pnext;
 }
+
+
 
 bool stkalloc_rollback(ARENA *par, void *chkpt)
 {
@@ -42,6 +48,8 @@ bool stkalloc_rollback(ARENA *par, void *chkpt)
   }
   return retval;
 }
+
+
 
 void *stkalloc_get_mem(ARENA *par, size_t mem_size)
 {
@@ -62,6 +70,8 @@ void *stkalloc_get_mem(ARENA *par, size_t mem_size)
   return retval;
 }
 
+
+
 void *stkalloc_free_arena(ARENA *par)
 {
   if (NULL != par->ar_pbase) {
@@ -69,6 +79,8 @@ void *stkalloc_free_arena(ARENA *par)
     free(par);
   }
 }
+
+
 
 void stkalloc_print_stats(ARENA *par)
 {
@@ -86,6 +98,8 @@ void stkalloc_print_stats(ARENA *par)
 #if defined(STACKALLOC_TEST)
 
 #define TEST_ARENA_SIZE 64
+
+
 
 void stkalloc_test(void)
 {
@@ -112,6 +126,8 @@ void stkalloc_test(void)
   stkalloc_print_stats(par);
   stkalloc_free_arena(par);
 }
+
+
 
 int main(int argc, char **argv)
 {

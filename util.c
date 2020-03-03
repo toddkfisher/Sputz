@@ -5,6 +5,8 @@ void zero_mem(void *p, size_t n)
   explicit_bzero(p, n);
 }
 
+
+
 void print_summary_string(char *s, size_t length)
 {
   char buf[MAX_SUMMARY_LENGTH];
@@ -22,6 +24,8 @@ void print_summary_string(char *s, size_t length)
     }
   }
 }
+
+
 
 static int blanks(char *s)
 {

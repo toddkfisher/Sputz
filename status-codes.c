@@ -5,6 +5,8 @@ static char *g_status_code_names[] = {
 #include "enum-status-codes.h"
 };
 
+
+
 char *scode_name(uint32_t code)
 {
   char *result = "UNKNOWN_STATUS_CODE";
@@ -13,6 +15,8 @@ char *scode_name(uint32_t code)
   }
   return result;
 }
+
+
 
 bool scode_is_error(uint32_t code)
 {

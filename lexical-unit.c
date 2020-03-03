@@ -5,6 +5,8 @@ char *g_lex_unit_names[] ={
 #include "enum-L.h"
 };
 
+
+
 char *lx_name(uint32_t lx_type)
 {
   char *result = "UNKNOWN_LEXICAL_TYPE";
@@ -13,6 +15,8 @@ char *lx_name(uint32_t lx_type)
   }
   return result;
 }
+
+
 
 void lx_print(LEX_UNIT *plx)
 {
@@ -36,6 +40,8 @@ void lx_print(LEX_UNIT *plx)
   printf("}\n");
 }
 
+
+
 void lx_skip_whitespace(GEN_READ *pinput)
 {
   char ch = 0;
@@ -45,6 +51,8 @@ void lx_skip_whitespace(GEN_READ *pinput)
     gr_putback_char(pinput, ch);
   }
 }
+
+
 
 #define IS_NAME_CHAR(ch) (isalnum(ch) || '_' == (ch) || '?' == (ch))
 
@@ -66,7 +74,11 @@ struct {
   "",        0
 };
 
+
+
 typedef uint32_t (*LX_SCAN_FN)(GEN_READ *, LEX_UNIT *, STRTAB *);
+
+
 
 // '!'  --> L_SUCH_THAT
 // '!!' --> L_GUARD
@@ -86,6 +98,8 @@ uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   }
   return result;
 }
+
+
 
 // L_NUMBER
 // Numeric syntax:
@@ -143,6 +157,8 @@ uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   return result;
 }
 
+
+
 // ':=' --> L_ASSIGN
 uint32_t lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
@@ -160,6 +176,8 @@ uint32_t lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   }
   return result;
 }
+
+
 
 // '>'  --> L_GT
 // '>=' --> L_GE
@@ -200,6 +218,8 @@ uint32_t lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   return result;
 }
 
+
+
 // Return pointer to name in string table (pstrtab).
 // At least one character must remain to be pinput.
 char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
@@ -228,6 +248,8 @@ char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
   return result;
 }
 
+
+
 uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
   uint32_t result = LX_SCAN_OK;
@@ -240,6 +262,8 @@ uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   }
   return result;
 }
+
+
 
 uint32_t lx_scan_var_name_or_kw(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
@@ -260,6 +284,8 @@ uint32_t lx_scan_var_name_or_kw(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab
   }
   return result;
 }
+
+
 
 // Map: character -> lexical unit code (if single char) OR
 //                   scanning function (if multi char)
@@ -369,6 +395,8 @@ struct {
     ['~' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         }
 };
 
+
+
 // Driver for various lexical unit scanners.
 uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
@@ -392,6 +420,8 @@ uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
   }
   return retval;
 }
+
+
 
 #if defined(TEST_LEX)
 

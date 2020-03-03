@@ -1,6 +1,7 @@
 #include "sputz-includes.h"
 
-//------------------------------------------------------------------------------
+
+
 // Initialize a GEN_READ to get characters from a string.
 bool gr_open_str(GEN_READ *r, char *s)
 {
@@ -15,7 +16,8 @@ bool gr_open_str(GEN_READ *r, char *s)
   return true;
 }
 
-//------------------------------------------------------------------------------
+
+
 // Initialize a GEN_READ to get characters from a FILE.
 bool gr_open_file(GEN_READ *r, char *pth)
 {
@@ -29,7 +31,8 @@ bool gr_open_file(GEN_READ *r, char *pth)
 }
 
 #if 0
-//------------------------------------------------------------------------------
+
+
 // Initialize a GEN_READ to get characters from GNU readline.
 bool gr_open_rdln(GEN_READ *r, char *prompt)
 {
@@ -47,7 +50,8 @@ bool gr_open_rdln(GEN_READ *r, char *prompt)
   return true;
 }
 
-//------------------------------------------------------------------------------
+
+
 // If GEN_READ r was initialized to input from GNU readline, then
 // set the prompt.
 void gr_set_prompt(GEN_READ *r, char *prompt)
@@ -62,7 +66,8 @@ void gr_set_prompt(GEN_READ *r, char *prompt)
 
 #endif
 
-//------------------------------------------------------------------------------
+
+
 // Get the next character from GEN_READ r.  If one was placed into the putback
 // buffer then that will be returned.  End of file behavior for string inputs
 // is exactly the same as EOF behavior for FILEs.  EOF behavior for
@@ -167,7 +172,8 @@ bool gr_get_char(GEN_READ *r, char *c)
   return retval;
 }
 
-//------------------------------------------------------------------------------
+
+
 // Get the current position in input for later backup.
 bool gr_get_pos(GEN_READ *r, GEN_READ_POSITION *pos)
 {
@@ -188,7 +194,8 @@ bool gr_get_pos(GEN_READ *r, GEN_READ_POSITION *pos)
   return retval;
 }
 
-//------------------------------------------------------------------------------
+
+
 // Return to a previously visited position on the input.
 bool gr_set_pos(GEN_READ *r, GEN_READ_POSITION *pos)
 {
@@ -212,7 +219,8 @@ bool gr_set_pos(GEN_READ *r, GEN_READ_POSITION *pos)
   return retval;
 }
 
-//------------------------------------------------------------------------------
+
+
 // Behave like feof() but for all input types.
 bool gr_eof(GEN_READ *r)
 {
@@ -235,7 +243,8 @@ bool gr_eof(GEN_READ *r)
   return retval;
 }
 
-//------------------------------------------------------------------------------
+
+
 // Place a character onto the putback buffer (1 character) of GEN_READ r.
 // ALWAYS sets "end of file" condition to FALSE.
 void gr_putback_char(GEN_READ *r, char c)
@@ -249,6 +258,8 @@ void gr_putback_char(GEN_READ *r, char c)
     r->gr_col_n = MAX(1, r->gr_col_n - 1);
   }
 }
+
+
 
 void gr_close(GEN_READ *r)
 {
@@ -283,7 +294,8 @@ void gr_close(GEN_READ *r)
   }
 }
 
-//------------------------------------------------------------------------------
+
+
 // Initialize GEN_READ *r from command-line parameters passed in.
 void init_gr(char test_type, char *arg, GEN_READ *r)
 {
