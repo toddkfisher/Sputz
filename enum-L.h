@@ -24,21 +24,29 @@ ENUM(L_GUARD),        // '!!' Syntax
 ENUM(L_SUCH_THAT),    // '!'  Syntax
 ENUM(L_RESULT),       // '=>' Syntax
 ENUM(L_ASSIGN),       // ':=' Syntax
-ENUM(L_PLUS),         // '+'  Operator
-ENUM(L_MINUS),        // '-'  Operator
-ENUM(L_TIMES),        // '*'  Operator
-ENUM(L_POWER),        // '**' Operator
-ENUM(L_DIVIDE),       // '/'  Operator
-ENUM(L_MOD),          // '%'  Operator
-ENUM(L_BEGIN_REL_OP),
-  ENUM(L_GT),         // '>'  Operator
-  ENUM(L_GE),         // '>=' Operator
-  ENUM(L_LT),         // '<'  Operator
-  ENUM(L_LE),         // '<=' Operator
-  ENUM(L_EQ),         // '='  Operator
-  ENUM(L_NE),         // '<>' Operator
-ENUM(L_END_REL_OP),
 ENUM(L_CLOSUREIZE),   // '`'  Syntax
 ENUM(L_PATTERN_ALT),  // '|'  Syntax
+ENUM(L_BEGIN_BINARY_OP),
+  ENUM(L_BEGIN_RELATIONAL_OP),
+    ENUM(L_GT),       // '>'  Operator
+    ENUM(L_GE),       // '>=' Operator
+    ENUM(L_LT),       // '<'  Operator
+    ENUM(L_LE),       // '<=' Operator
+    ENUM(L_EQ),       // '='  Operator
+    ENUM(L_NE),       // '<>' Operator
+  ENUM(L_END_RELATIONAL_OP),
+  ENUM(L_BEGIN_ADD_OP),
+    ENUM(L_PLUS),     // '+'  Operator
+    ENUM(L_MINUS),    // '-'  Operator
+  ENUM(L_END_ADD_OP),
+  ENUM(L_BEGIN_MULTIPLATION_OP),
+    ENUM(L_TIMES),     // '*'  Operator
+    ENUM(L_POWER),     // '**' Operator
+    ENUM(L_DIVIDE),    // '/'  Operator
+    ENUM(L_MOD),       // '%'  Operator
+  ENUM(L_END_MULTIPLATION_OP),
+ENUM(L_END_BINARY_OP),
+ENUM(L_BEGIN_UNARY_OP),
+ENUM(L_END_UNARY_OP),
 ENUM(L_UNKNOWN),
 ENUM(L_EOF)

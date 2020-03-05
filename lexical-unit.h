@@ -5,6 +5,8 @@ enum {
 #include "enum-L.h"
 };
 
+#define IS_OPERATOR_LTYPE(lx_type, op_type) ((L_BEGIN_##lx_type##_OP) < (op_type) && (op_type) < (L_END_##lx_type##_OP))
+
 typestruct(LEX_UNIT);
 struct LEX_UNIT {
   uint8_t lex_type;

@@ -11,27 +11,11 @@ char *node_type_names[] = {
 
 
 
-bool parse_is_binary_op(uint32_t type)
-{
-  bool result = type > NT_BEGIN_BINARY_OP && type < NT_END_BINARY_OP;
-  return result;
-}
-
-
-
-// Note: type is lexical not parse tree (node type).
-bool parse_is_rel_op(uint32_t type)
-{
-  bool result = type > L_BEGIN_REL_OP && type < L_END_REL_OP;
-  return result;
-}
-
-
-
 void parse_print_binary_op(PARSE_TREE_NODE *p,
                            uint8_t indent)
 {
-  IND(1); printf("-left_expr:\n");
+  IND(1);
+  printf("-left_expr:\n");
   parse_tree_print(p->nd_binop_left_expr,
                    indent + INDENT_SPACES);
   IND(1);
@@ -65,10 +49,11 @@ void parse_tree_print(PARSE_TREE_NODE *p,
                       uint8_t indent)
 {
   if (NULL != p) {
-    IND(1); printf("%s\n", node_type_names[p->nd_type]);
-    if (parse_is_binary_op(p->nd_type)) {
+    IND(1);
+    printf("%s\n", node_type_names[p->nd_type]);
+    if (IS_OPERATOR_NTYPE(BINARY, p->nd_type)) {
       parse_print_binary_op(p, indent);
-    } else if (parse_is_unary_op(p->nd_type)) {
+    } else if (IS_OPERATOR_NTYPE(UNARY, p->nd_type)) {
       parse_print_unary_op(p, indent);
     } else {
       switch (p->nd_type) {
@@ -83,7 +68,8 @@ void parse_tree_print(PARSE_TREE_NODE *p,
           break;
         case NT_NUM_CONST:
         case NT_PATT_NUM_CONST:
-          IND(1); printf("-num_const: %lf\n", p->nd_num_const);
+          IND(1);
+          printf("-num_const: %lf\n", p->nd_num_const);
           break;
         case NT_IF:
           IND(1);
@@ -391,7 +377,7 @@ PARSE_TREE_NODE *parse_and_term(PARSE_STATE *pstate)
     parse_scan_lx_unit(pstate);
   }
   result = parse_compare_term(pstate);
-  if (parse_is_rel_op(pstate->pst_lookahead.lex_type)) {
+  if (IS_OPERATOR_LTYPE(RELATIONAL, pstate->pst_lookahead.lex_type)) {
     PARSE_TREE_NODE *pleft = result;
     PARSE_TREE_NODE *pright = NULL;
     uint32_t lx_rel_op = pstate->pst_lookahead.lex_type;
@@ -429,6 +415,7 @@ PARSE_TREE_NODE *parse_and_term(PARSE_STATE *pstate)
 
 
 
+// compareTerm = term (addOp term)*
 PARSE_TREE_NODE *parse_compare_term(PARSE_STATE *pstate)
 {
   PARSE_TREE_NODE *result = parse_number(pstate);

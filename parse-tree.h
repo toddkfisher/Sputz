@@ -98,3 +98,5 @@ struct PARSE_STATE {
   // Hash table for string constants, variable names, symbol names, etc.
   STRTAB *pst_pstrtab;
 };
+
+#define IS_OPERATOR_NTYPE(lx_type, op_type) ((NT_BEGIN_##lx_type##_OP) < (op_type) && (op_type) < (NT_END_##lx_type##_OP))
