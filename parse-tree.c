@@ -7,7 +7,12 @@ char *node_type_names[] = {
 
 #define INDENT_SPACES 2
 
-#define IND(n) do { for (int i = 0; i < indent*(n); ++i) { printf(" "); } } while (0)
+#define IND(n)                               \
+  do {                                       \
+    for (int i = 0; i < indent*(n); ++i) {   \
+      printf(" ");                           \
+    }                                        \
+  } while (0)
 
 
 
@@ -26,14 +31,6 @@ void parse_print_binary_op(PARSE_TREE_NODE *p,
 
 
 
-bool parse_is_unary_op(uint32_t type)
-{
-  bool result = type > NT_BEGIN_UNARY_OP && type < NT_END_UNARY_OP;
-  return result;
-}
-
-
-
 void parse_print_unary_op(PARSE_TREE_NODE *p,
                           uint8_t indent)
 {
@@ -41,6 +38,73 @@ void parse_print_unary_op(PARSE_TREE_NODE *p,
   printf("-unop_expr:\n");
   parse_tree_print(p->nd_unop_expr,
                    indent + INDENT_SPACES);
+}
+
+
+
+void parse_tree_dot_binary_op(PARSE_TREE_NODE *p)
+{
+  char left_label[MAX_STR];
+  char right_label[MAX_STR];
+  char node_label[MAX_STR];
+  sprintf(left_label, "N_%lu", (unsigned long) p->nd_binop_left_expr);
+  sprintf(right_label, "N_%lu", (unsigned long) p->nd_binop_right_expr);
+  sprintf(node_label, "N_%lu", (unsigned long) p);
+  // N563 [shape=record, label="{ordered choice|{<left>left|<right>right|}}"];
+ printf("%s [shape=record, label=\"{%s|{<left>left|<right>right|}}\"];\n",
+         node_label,
+         node_type_names[p->nd_type]);
+  printf("%s left -> %s;\n", node_label, left_label);
+  printf("%s right -> %s;\n", node_label, right_label);
+  parse_tree_node_to_dot(p->nd_binop_left_expr);
+  parse_tree_node_to_dot(p->nd_binop_right_expr);
+}
+
+
+
+void parse_tree_dot_unary_op(PARSE_TREE_NODE *p)
+{
+  char node_label[MAX_STR];
+  char expr_label[MAX_STR];
+  sprintf(expr_label, "N_%lu", (unsigned long) p->nd_unop_expr);
+  sprintf(node_label, "N_%lu", (unsigned long) p);
+  printf("%s [shape=record, label=\"{%s|{<expr>expr|}}\"];\n",
+         node_label,
+         node_type_names[p->nd_type]);
+  printf("%s expr -> %s;\n", node_label, expr_label);
+  parse_tree_node_to_dot(p->nd_unop_expr);
+}
+
+
+
+void parse_tree_node_to_dot(PARSE_TREE_NODE *p)
+{
+  if (IS_OPERATOR_NTYPE(BINARY, p->nd_type)) {
+    parse_tree_dot_binary_op(p);
+  } else if (IS_OPERATOR_NTYPE(UNARY, p->nd_type)) {
+    parse_tree_dot_unary_op(p);
+  } else {
+    switch (p->nd_type) {
+      case NT_ASSIGN_OP:
+          break;
+        case NT_NUM_CONST:
+        case NT_PATT_NUM_CONST:
+          break;
+        case NT_IF:
+          break;
+        default:
+          break;
+    }
+  }
+}
+
+
+
+void parse_tree_to_dot(PARSE_TREE_NODE *p)
+{
+  printf("digraph sputz_parse_tree {\n");
+  parse_tree_node_to_dot(p);
+  printf("}\n");
 }
 
 
@@ -557,7 +621,9 @@ uint32_t parse_init(PARSE_STATE *pstate,
   init_gr(test_type, arg, &pstate->pst_input);
   ABORT_ON_NULL(*ppmem = stkalloc_new_arena(MIB(10)), INIT_MEM_FAIL0);
   ABORT_ON_NULL(*ppstrtab = strtab_new(*ppmem), INIT_MEM_FAIL1);
-  pstate->pst_status = lx_scan_next(&pstate->pst_input, &pstate->pst_lookahead, pstate->pst_pstrtab);
+  pstate->pst_status = lx_scan_next(&pstate->pst_input,
+                                    &pstate->pst_lookahead,
+                                    pstate->pst_pstrtab);
   result = pstate->pst_status;
   return result;
   INIT_READ_FAIL: {
@@ -596,25 +662,58 @@ int main(int argc, char **argv)
   PARSE_STATE pstate;
   PARSE_TREE_NODE *proot;
   int retval = 0;
+  bool print_parse_tree_as_outline = false;
+  bool print_parse_tree_as_dot_graph = false;
+  bool initialized = false;
   uint32_t init_status_code = S_OK;
-  if (argc < 3 || !STREQ(argv[1], "-s")) {
-    fprintf(stderr, "Usage: %s -s '<text>'\n", argv[0]);
+  if (argc < 3) {
+    fprintf(stderr, "Usage: %s [-o | -d] -s '<text>'\n", argv[0]);
     retval = 1;
-  } else if (scode_is_error(init_status_code = parse_init(&pstate,
-                                                          argv[1][1],
-                                                          argv[2],
-                                                          &pstate.pst_pmem,
-                                                          &pstate.pst_pstrtab))) {
-    fprintf(stderr, "Initialization failure: %s.\n", scode_name(init_status_code));
-    retval = 2;
-  } else if (!setjmp(pstate.pst_abort)) {
-    proot = parse_sputz_program(&pstate);
-    fprintf(stderr, "Parse successful.\n");
-    printf("Result : \n");
-    parse_tree_print(proot, 0);
   } else {
-    fprintf(stderr, "%s\n", pstate.pst_err_msg);
-    retval = 3;
+    int i;
+    for (i = 1; !retval && i < argc;) {
+      if (STREQ(argv[i], "-s")) {
+        if (scode_is_error(init_status_code = parse_init(&pstate,
+                                                         argv[i][1],
+                                                         argv[i + 1],
+                                                         &pstate.pst_pmem,
+                                                         &pstate.pst_pstrtab))) {
+          fprintf(stderr, "Initialization failure: %s.\n",
+                  scode_name(init_status_code));
+          retval = 2;
+        } else {
+          // Skip past '-s' and '<text>'
+          i += 2;
+          initialized = true;
+        }
+      } else if (STREQ(argv[i], "-d")) {
+        print_parse_tree_as_dot_graph = true;
+        print_parse_tree_as_outline = false;
+        i += 1;
+      } else if (STREQ(argv[i], "-o")) {
+        print_parse_tree_as_outline = true;
+        print_parse_tree_as_dot_graph = false;
+        i += 1;
+      } else {
+        fprintf(stderr, "Unknown command line option: %s\n", argv[i]);
+        retval = 3;
+      }
+    }
+  }
+  if (!retval) {
+    if (!setjmp(pstate.pst_abort)) {
+      proot = parse_sputz_program(&pstate);
+      if (print_parse_tree_as_outline) {
+        parse_tree_print(proot, 0);
+      } else if (print_parse_tree_as_dot_graph) {
+        parse_tree_to_dot(proot);
+      } else {
+        printf("Parse successful.\n");
+      }
+    } else {
+      fprintf(stderr, "%s\n", pstate.pst_err_msg);
+      retval = 4;
+    }
   }
   parse_fin(&pstate);
   return retval;
