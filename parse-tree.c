@@ -42,20 +42,24 @@ void parse_print_unary_op(PARSE_TREE_NODE *p,
 
 
 
+#define GET_DOT_NODE_NAME(s, p) sprintf((s), "N_%lu", (unsigned long) (p));
+
+
+
 void parse_tree_dot_binary_op(PARSE_TREE_NODE *p)
 {
-  char left_label[MAX_STR];
-  char right_label[MAX_STR];
-  char node_label[MAX_STR];
-  sprintf(left_label, "N_%lu", (unsigned long) p->nd_binop_left_expr);
-  sprintf(right_label, "N_%lu", (unsigned long) p->nd_binop_right_expr);
-  sprintf(node_label, "N_%lu", (unsigned long) p);
+  char dot_name_left[MAX_STR];
+  char dot_name_right[MAX_STR];
+  char dot_name_node[MAX_STR];
+  GET_DOT_NODE_NAME(dot_name_left, p->nd_binop_left_expr);
+  GET_DOT_NODE_NAME(dot_name_right, p->nd_binop_right_expr);
+  GET_DOT_NODE_NAME(dot_name_node, p);
   // N563 [shape=record, label="{ordered choice|{<left>left|<right>right|}}"];
- printf("%s [shape=record, label=\"{%s|{<left>left|<right>right|}}\"];\n",
-         node_label,
-         node_type_names[p->nd_type]);
-  printf("%s:left -> %s;\n", node_label, left_label);
-  printf("%s:right -> %s;\n", node_label, right_label);
+ printf("%s [shape=record, label=\"{%s|{<left>left|<right>right}}\"];\n",
+        dot_name_node,
+        node_type_names[p->nd_type]);
+  printf("%s:left -> %s;\n", dot_name_node, dot_name_left);
+  printf("%s:right -> %s;\n", dot_name_node, dot_name_right);
   parse_tree_node_to_dot(p->nd_binop_left_expr);
   parse_tree_node_to_dot(p->nd_binop_right_expr);
 }
@@ -64,14 +68,14 @@ void parse_tree_dot_binary_op(PARSE_TREE_NODE *p)
 
 void parse_tree_dot_unary_op(PARSE_TREE_NODE *p)
 {
-  char node_label[MAX_STR];
-  char expr_label[MAX_STR];
-  sprintf(expr_label, "N_%lu", (unsigned long) p->nd_unop_expr);
-  sprintf(node_label, "N_%lu", (unsigned long) p);
-  printf("%s [shape=record, label=\"{%s|{<expr>expr|}}\"];\n",
-         node_label,
+  char dot_name_node[MAX_STR];
+  char dot_name_expr[MAX_STR];
+  GET_DOT_NODE_NAME(dot_name_expr, p->nd_unop_expr);
+  GET_DOT_NODE_NAME(dot_name_node, p);
+  printf("%s [shape=record, label=\"{%s|{<expr>expr}}\"];\n",
+         dot_name_node,
          node_type_names[p->nd_type]);
-  printf("%s:expr -> %s;\n", node_label, expr_label);
+  printf("%s:expr -> %s;\n", dot_name_node, dot_name_expr);
   parse_tree_node_to_dot(p->nd_unop_expr);
 }
 
@@ -79,6 +83,7 @@ void parse_tree_dot_unary_op(PARSE_TREE_NODE *p)
 
 void parse_tree_node_to_dot(PARSE_TREE_NODE *p)
 {
+  char dot_name[MAX_STR];
   if (IS_OPERATOR_NTYPE(BINARY, p->nd_type)) {
     parse_tree_dot_binary_op(p);
   } else if (IS_OPERATOR_NTYPE(UNARY, p->nd_type)) {
@@ -86,14 +91,18 @@ void parse_tree_node_to_dot(PARSE_TREE_NODE *p)
   } else {
     switch (p->nd_type) {
       case NT_ASSIGN_OP:
-          break;
-        case NT_NUM_CONST:
-        case NT_PATT_NUM_CONST:
-          break;
-        case NT_IF:
-          break;
-        default:
-          break;
+        break;
+      case NT_NUM_CONST:
+      case NT_PATT_NUM_CONST:
+        GET_DOT_NODE_NAME(dot_name, p);
+        printf("%s [shape=record, label=\"{%lf}\"];\n",
+               dot_name,
+               p->nd_num_const);
+        break;
+      case NT_IF:
+        break;
+      default:
+        break;
     }
   }
 }

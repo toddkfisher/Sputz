@@ -1,6 +1,4 @@
 #!/bin/sh
-echo "Generating: TAGS file"
-etags *.c *.h
 echo "Generating: prototypes.h"
 cproto util.c status-codes.c stackalloc.c strtab.c gen-read.c lexical-unit.c parse-tree.c > prototypes.h
 echo "Compiling: gen-read.c"
@@ -19,4 +17,6 @@ echo "Compiling status-codes.c"
 gcc -ggdb -DDEBUG -DNO_CPROTO -c status-codes.c
 echo "Linking: spz"
 gcc -ggdb -o spz  status-codes.o util.o stackalloc.o strtab.o gen-read.o lexical-unit.o parse-tree.o -lm
+echo "Generating: TAGS file"
+etags *.c *.h
 echo "Build complete"
