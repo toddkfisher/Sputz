@@ -54,8 +54,8 @@ void parse_tree_dot_binary_op(PARSE_TREE_NODE *p)
  printf("%s [shape=record, label=\"{%s|{<left>left|<right>right|}}\"];\n",
          node_label,
          node_type_names[p->nd_type]);
-  printf("%s left -> %s;\n", node_label, left_label);
-  printf("%s right -> %s;\n", node_label, right_label);
+  printf("%s:left -> %s;\n", node_label, left_label);
+  printf("%s:right -> %s;\n", node_label, right_label);
   parse_tree_node_to_dot(p->nd_binop_left_expr);
   parse_tree_node_to_dot(p->nd_binop_right_expr);
 }
@@ -71,7 +71,7 @@ void parse_tree_dot_unary_op(PARSE_TREE_NODE *p)
   printf("%s [shape=record, label=\"{%s|{<expr>expr|}}\"];\n",
          node_label,
          node_type_names[p->nd_type]);
-  printf("%s expr -> %s;\n", node_label, expr_label);
+  printf("%s:expr -> %s;\n", node_label, expr_label);
   parse_tree_node_to_dot(p->nd_unop_expr);
 }
 
@@ -714,8 +714,8 @@ int main(int argc, char **argv)
       fprintf(stderr, "%s\n", pstate.pst_err_msg);
       retval = 4;
     }
+    parse_fin(&pstate);
   }
-  parse_fin(&pstate);
   return retval;
 }
 
