@@ -84,9 +84,9 @@ void parse_tree_dot_unary_op(PARSE_TREE_NODE *p)
 void parse_tree_node_to_dot(PARSE_TREE_NODE *p)
 {
   char dot_name[MAX_STR];
-  if (IS_OPERATOR_NTYPE(BINARY, p->nd_type)) {
+  if (HAS_ANY_TYPE(p->nd_type, NC_BINARY_OP)) {
     parse_tree_dot_binary_op(p);
-  } else if (IS_OPERATOR_NTYPE(UNARY, p->nd_type)) {
+  } else if (HAS_ANY_TYPE(p->nd_type, NC_UNARY_OP)) {
     parse_tree_dot_unary_op(p);
   } else {
     switch (p->nd_type) {
@@ -123,10 +123,10 @@ void parse_tree_print(PARSE_TREE_NODE *p,
 {
   if (NULL != p) {
     IND(1);
-    printf("%s\n", node_type_names[p->nd_type]);
-    if (IS_OPERATOR_NTYPE(BINARY, p->nd_type)) {
+    printf("%s\n", node_type_names[GET_ORDINAL(p->nd_type)]);
+    if (HAS_ANY_TYPE(p->nd_type, NC_BINARY_OP)) {
       parse_print_binary_op(p, indent);
-    } else if (IS_OPERATOR_NTYPE(UNARY, p->nd_type)) {
+    } else if (HAS_ANY_TYPE(p->nd_type, NC_UNARY_OP)) {
       parse_print_unary_op(p, indent);
     } else {
       switch (p->nd_type) {
@@ -237,7 +237,7 @@ PARSE_TREE_NODE *parse_alloc_node(PARSE_STATE *pstate)
 
 
 
-void parse_expect(uint8_t lx_type,
+void parse_expect(TAGGED_ENUM lx_type,
                   PARSE_STATE *pstate)
 {
   if(lx_type != pstate->pst_lookahead.lex_type) {
@@ -254,7 +254,7 @@ void parse_expect(uint8_t lx_type,
 
 
 
-void parse_expect_and_skip(uint8_t lx_type, PARSE_STATE *pstate)
+void parse_expect_and_skip(TAGGED_ENUM lx_type, PARSE_STATE *pstate)
 {
   parse_expect(lx_type, pstate);
   parse_scan_lx_unit(pstate);
@@ -262,7 +262,7 @@ void parse_expect_and_skip(uint8_t lx_type, PARSE_STATE *pstate)
 
 
 
-PARSE_TREE_NODE *parse_create_binop(uint8_t op,
+PARSE_TREE_NODE *parse_create_binop(TAGGED_ENUM op,
                                     PARSE_TREE_NODE *pleft,
                                     PARSE_TREE_NODE *pright,
                                     PARSE_STATE *pstate)
@@ -277,7 +277,7 @@ PARSE_TREE_NODE *parse_create_binop(uint8_t op,
 
 
 
-PARSE_TREE_NODE *parse_create_unop(uint8_t op,
+PARSE_TREE_NODE *parse_create_unop(TAGGED_ENUM op,
                                    PARSE_TREE_NODE *puexpr,
                                    PARSE_STATE *pstate)
 {
@@ -450,7 +450,7 @@ PARSE_TREE_NODE *parse_and_term(PARSE_STATE *pstate)
     parse_scan_lx_unit(pstate);
   }
   result = parse_compare_term(pstate);
-  if (IS_OPERATOR_LTYPE(RELATIONAL, pstate->pst_lookahead.lex_type)) {
+  if (HAS_ANY_TYPE(pstate->pst_lookahead.lex_type, LC_REL_OP)) {
     PARSE_TREE_NODE *pleft = result;
     PARSE_TREE_NODE *pright = NULL;
     uint32_t lx_rel_op = pstate->pst_lookahead.lex_type;
@@ -619,13 +619,13 @@ PARSE_TREE_NODE *parse_pattern_data_constructor(PARSE_STATE *pstate)
 
 
 
-uint32_t parse_init(PARSE_STATE *pstate,
+TAGGED_ENUM parse_init(PARSE_STATE *pstate,
                     char test_type,
                     char *arg,
                     ARENA **ppmem,
                     STRTAB **ppstrtab)
 {
-  uint32_t result = S_OK;
+  TAGGED_ENUM result = S_OK;
   // init_gr() is temporary here so don't check for errors when calling it.
   init_gr(test_type, arg, &pstate->pst_input);
   ABORT_ON_NULL(*ppmem = stkalloc_new_arena(MIB(10)), INIT_MEM_FAIL0);
@@ -674,7 +674,7 @@ int main(int argc, char **argv)
   bool print_parse_tree_as_outline = false;
   bool print_parse_tree_as_dot_graph = false;
   bool initialized = false;
-  uint32_t init_status_code = S_OK;
+  TAGGED_ENUM init_status_code = S_OK;
   if (argc < 3) {
     fprintf(stderr, "Usage: %s [-o | -d] -s '<text>'\n", argv[0]);
     retval = 1;

@@ -1,5 +1,17 @@
 #pragma once
 
+// "L" == "Lexical Unit"
+// "LC" == "lexical unit class"
+// "KW" == "Keyword"
+
+enum {
+   LC_UNARY_OP  = 0x01,
+   LC_BINARY_OP = 0x02,
+   LC_REL_OP    = 0x04,
+   LC_ADD_OP    = 0x08,
+   LC_MUL_OP    = 0x10
+};
+
 #include "enum-int.h"
 enum {
 #include "enum-L.h"
@@ -9,7 +21,7 @@ enum {
 
 typestruct(LEX_UNIT);
 struct LEX_UNIT {
-  uint8_t lex_type;
+  TAGGED_ENUM lex_type;
   // line/col position of lexical unit in input source.
   uint32_t lex_line_n;
   uint32_t lex_col_n;

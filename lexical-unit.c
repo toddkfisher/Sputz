@@ -58,7 +58,7 @@ void lx_skip_whitespace(GEN_READ *pinput)
 
 struct {
   char *kw_name;
-  uint8_t kw_type;
+  TAGGED_ENUM kw_type;
 } g_keywords[]= {
   "also",    L_ALSO_KW,
   "and",     L_AND_KW,
@@ -82,9 +82,9 @@ typedef uint32_t (*LX_SCAN_FN)(GEN_READ *, LEX_UNIT *, STRTAB *);
 
 // '!'  --> L_SUCH_THAT
 // '!!' --> L_GUARD
-uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t result = LX_SCAN_OK;
+  TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
   // Skip '!'
   gr_get_char(pinput, &ch);
@@ -104,9 +104,9 @@ uint32_t lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 // L_NUMBER
 // Numeric syntax:
 // ['~']<digit>+['.'<digit>*][('e'|'E')['~']<digit>+]
-uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t result = LX_SCAN_OK;
+  TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
   gr_get_char(pinput, &ch);
   if ('~' == ch || isdigit(ch)) {
@@ -160,9 +160,9 @@ uint32_t lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 
 
 // ':=' --> L_ASSIGN
-uint32_t lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t result = LX_SCAN_OK;
+  TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
   // skip over ':'
   gr_get_char(pinput, &ch);
@@ -185,9 +185,9 @@ uint32_t lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 // '<=' --> L_LE
 // '='  --> L_EQ
 // '<>' --> L_NE
-uint32_t lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t result = LX_SCAN_OK;
+  TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
   char next_ch;
   gr_get_char(pinput, &ch);
@@ -250,9 +250,9 @@ char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
 
 
 
-uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t result = LX_SCAN_OK;
+  TAGGED_ENUM result = LX_SCAN_OK;
   char *pname = lx_scan_generic_name(pinput, pstrtab);
   if (NULL != pname) {
     plx->lex_psym_name = pname;
@@ -265,9 +265,9 @@ uint32_t lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 
 
 
-uint32_t lx_scan_var_name_or_kw(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_var_name_or_kw(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t result = LX_SCAN_OK;
+  TAGGED_ENUM result = LX_SCAN_OK;
   char *pname = lx_scan_generic_name(pinput, pstrtab);
   if (NULL != pname) {
     int i;
@@ -398,9 +398,9 @@ struct {
 
 
 // Driver for various lexical unit scanners.
-uint32_t lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 {
-  uint32_t retval = LX_UNKNOWN_CHAR;
+  TAGGED_ENUM retval = LX_UNKNOWN_CHAR;
   char ch;
   lx_skip_whitespace(pinput);
   plx->lex_line_n = pinput->gr_line_n;

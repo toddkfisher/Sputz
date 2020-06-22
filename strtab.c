@@ -71,12 +71,12 @@ char *strtab_exists(STRTAB *st, char *s)
 
 
 
-uint8_t strtab_insert(STRTAB *st, char *s, char **ppstr)
+TAGGED_ENUM strtab_insert(STRTAB *st, char *s, char **ppstr)
 {
   uint32_t h = strtab_hash(s);
   STRREC *pnewrec;
   STRREC *prec;
-  uint32_t result;
+  TAGGED_ENUM result;
   result = ST_UNABLE_TO_INSERT;
   if (NULL == (*ppstr = strtab_exists(st, s))) {
     ABORT_ON_NULL(pnewrec = strtab_new_rec(st), MEM_OVERFLOW0);

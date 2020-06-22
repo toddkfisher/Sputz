@@ -1,2 +1,2 @@
 #undef ENUM
-#define ENUM(x) #x
+#define ENUM(name, ordinal_value, type_bits) [(ordinal_value)] = #name

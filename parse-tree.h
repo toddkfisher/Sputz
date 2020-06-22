@@ -1,5 +1,16 @@
 #pragma once
 
+// "NT_" == "Node Type"
+// "NC" == "Node Class"
+
+enum {
+   NC_UNARY_OP = 0x01,
+   NC_BINARY_OP = 0x02,
+   NC_REL_OP = 0x04,
+   NC_ADD_OP = 0x08,
+   NC_MUL_OP = 0x10
+};
+
 #include "enum-int.h"
 enum {
 #include "enum-PT.h"
@@ -8,7 +19,7 @@ enum {
 // Parse trees stored here.
 typestruct(PARSE_TREE_NODE);
 struct PARSE_TREE_NODE {
-  uint8_t nd_type;
+  TAGGED_ENUM nd_type;
   union {
     // NT_(any binary operator)
     struct {
@@ -88,7 +99,7 @@ struct PARSE_STATE {
   // Next input to examine.
   LEX_UNIT pst_lookahead;
   // Current status of parse.
-  uint32_t pst_status;
+  TAGGED_ENUM pst_status;
   // Error message if pst_status != PSTAT_OK.  Empty otherwise.
   char pst_err_msg[MAX_STR];
   // Dynamic memory allocation arena for string table, parse tree nodes, etc.

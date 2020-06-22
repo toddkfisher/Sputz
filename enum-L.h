@@ -1,52 +1,45 @@
 // "L" == "Lexical Unit"
+// "LC" == "lexical unit class"
 // "KW" == "Keyword"
-ENUM(L_NUMBER),
-ENUM(L_SYMBOL),
-ENUM(L_VAR_NAME),
-ENUM(L_IF_KW),
-ENUM(L_THEN_KW),
-ENUM(L_ELSE_KW),
-ENUM(L_AND_KW),
-ENUM(L_OR_KW),
-ENUM(L_NOT_KW),
-ENUM(L_BIND_KW),
-ENUM(L_OUTER_KW),
-ENUM(L_ALSO_KW),
-ENUM(L_NULL_KW),
-ENUM(L_VALUE_KW),
-ENUM(L_SEQ),          // ';'  Syntax
-ENUM(L_LPAREN),
-ENUM(L_RPAREN),
-ENUM(L_FN_BEGIN),     // '{'  Syntax
-ENUM(L_FN_END),       // '}'  Syntax
-ENUM(L_TUPLECAT),     // ','  Operator
-ENUM(L_GUARD),        // '!!' Syntax
-ENUM(L_SUCH_THAT),    // '!'  Syntax
-ENUM(L_RESULT),       // '=>' Syntax
-ENUM(L_ASSIGN),       // ':=' Syntax
-ENUM(L_CLOSUREIZE),   // '`'  Syntax
-ENUM(L_PATTERN_ALT),  // '|'  Syntax
-ENUM(L_BEGIN_BINARY_OP),
-  ENUM(L_BEGIN_RELATIONAL_OP),
-    ENUM(L_GT),       // '>'  Operator
-    ENUM(L_GE),       // '>=' Operator
-    ENUM(L_LT),       // '<'  Operator
-    ENUM(L_LE),       // '<=' Operator
-    ENUM(L_EQ),       // '='  Operator
-    ENUM(L_NE),       // '<>' Operator
-  ENUM(L_END_RELATIONAL_OP),
-  ENUM(L_BEGIN_ADD_OP),
-    ENUM(L_PLUS),     // '+'  Operator
-    ENUM(L_MINUS),    // '-'  Operator
-  ENUM(L_END_ADD_OP),
-  ENUM(L_BEGIN_MULTIPLATION_OP),
-    ENUM(L_TIMES),     // '*'  Operator
-    ENUM(L_POWER),     // '**' Operator
-    ENUM(L_DIVIDE),    // '/'  Operator
-    ENUM(L_MOD),       // '%'  Operator
-  ENUM(L_END_MULTIPLATION_OP),
-ENUM(L_END_BINARY_OP),
-ENUM(L_BEGIN_UNARY_OP),
-ENUM(L_END_UNARY_OP),
-ENUM(L_UNKNOWN),
-ENUM(L_EOF)
+
+ENUM(L_NUMBER, 0, 0),
+ENUM(L_SYMBOL, 1, 0),
+ENUM(L_VAR_NAME, 2, 0),
+ENUM(L_IF_KW, 3, 0),
+ENUM(L_THEN_KW, 4, 0),
+ENUM(L_ELSE_KW, 5, 0),
+ENUM(L_AND_KW, 6, 0),
+ENUM(L_OR_KW, 7, 0),
+ENUM(L_NOT_KW, 8, 0),
+ENUM(L_BIND_KW, 9, 0),
+ENUM(L_OUTER_KW, 10, 0),
+ENUM(L_ALSO_KW, 11, 0),
+ENUM(L_NULL_KW, 12, 0),
+ENUM(L_VALUE_KW, 13, 0),
+ENUM(L_SEQ, 14, 0),
+ENUM(L_LPAREN, 15, 0),
+ENUM(L_RPAREN, 16, 0),
+ENUM(L_FN_BEGIN, 17, 0),
+ENUM(L_FN_END, 18, 0),
+ENUM(L_TUPLECAT, 19, 0),
+ENUM(L_GUARD, 20, 0),
+ENUM(L_SUCH_THAT, 21, 0),
+ENUM(L_RESULT, 22, 0),
+ENUM(L_ASSIGN, 23, 0),
+ENUM(L_CLOSUREIZE, 24, 0),
+ENUM(L_PATTERN_ALT, 25, 0),
+ENUM(L_GT, 26, LC_BINARY_OP | LC_REL_OP),
+ENUM(L_GE, 27, LC_BINARY_OP | LC_REL_OP),
+ENUM(L_LT, 28, LC_BINARY_OP | LC_REL_OP),
+ENUM(L_LE, 29, LC_BINARY_OP | LC_REL_OP),
+ENUM(L_EQ, 30, LC_BINARY_OP | LC_REL_OP),
+ENUM(L_NE, 31, LC_BINARY_OP | LC_REL_OP),
+ENUM(L_PLUS, 32, LC_BINARY_OP | LC_ADD_OP),
+ENUM(L_MINUS, 33, LC_BINARY_OP | LC_ADD_OP),
+ENUM(L_TIMES, 34, LC_BINARY_OP | LC_MUL_OP),
+ENUM(L_POWER, 35, LC_BINARY_OP | LC_MUL_OP),
+ENUM(L_DIVIDE, 36, LC_BINARY_OP | LC_MUL_OP),
+ENUM(L_MOD, 37, LC_BINARY_OP | LC_MUL_OP),
+ENUM(L_NEGATE, 38, LC_UNARY_OP),
+ENUM(L_UNKNOWN, 39, 0),
+ENUM(L_EOF, 40, 0),

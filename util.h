@@ -129,3 +129,5 @@
 #define KIB(n) ((n)*1024)
 #define MIB(n) ((n)*1048576)
 #define GIB(n) ((n)*4294967296)
+
+typedef uint32_t TAGGED_ENUM;
