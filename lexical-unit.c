@@ -7,11 +7,11 @@ char *g_lex_unit_names[] ={
 
 
 
-char *lx_name(uint32_t lx_type)
+char *lx_name(TAGGED_ENUM lx_type)
 {
   char *result = "UNKNOWN_LEXICAL_TYPE";
-  if (lx_type < sizeof(g_lex_unit_names)/sizeof(char *)) {
-    result = g_lex_unit_names[lx_type];
+  if (GET_ORDINAL(lx_type) < sizeof(g_lex_unit_names)/sizeof(char *)) {
+    result = g_lex_unit_names[GET_ORDINAL(lx_type)];
   }
   return result;
 }

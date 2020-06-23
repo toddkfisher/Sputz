@@ -1,7 +1,7 @@
 #include "sputz-includes.h"
 
 #include "enum-str.h"
-char *node_type_names[] = {
+char *g_node_type_names[] = {
 #include "enum-PT.h"
 };
 
@@ -13,6 +13,17 @@ char *node_type_names[] = {
       printf(" ");                           \
     }                                        \
   } while (0)
+
+
+
+char *parse_get_node_type_name(TAGGED_ENUM pt_type)
+{
+  char *result = "UNKNOWN_NODE_TYPE";
+  if (GET_ORDINAL(pt_type) < sizeof(g_node_type_names)/sizeof(char *)) {
+    result = g_node_type_names[GET_ORDINAL(pt_type)];
+  }
+  return result;
+}
 
 
 
@@ -57,7 +68,7 @@ void parse_tree_dot_binary_op(PARSE_TREE_NODE *p)
   // N563 [shape=record, label="{ordered choice|{<left>left|<right>right|}}"];
  printf("%s [shape=record, label=\"{%s|{<left>left|<right>right}}\"];\n",
         dot_name_node,
-        node_type_names[p->nd_type]);
+        parse_get_node_type_name(p->nd_type));
   printf("%s:left -> %s;\n", dot_name_node, dot_name_left);
   printf("%s:right -> %s;\n", dot_name_node, dot_name_right);
   parse_tree_node_to_dot(p->nd_binop_left_expr);
@@ -74,7 +85,7 @@ void parse_tree_dot_unary_op(PARSE_TREE_NODE *p)
   GET_DOT_NODE_NAME(dot_name_node, p);
   printf("%s [shape=record, label=\"{%s|{<expr>expr}}\"];\n",
          dot_name_node,
-         node_type_names[p->nd_type]);
+         parse_get_node_type_name(p->nd_type));
   printf("%s:expr -> %s;\n", dot_name_node, dot_name_expr);
   parse_tree_node_to_dot(p->nd_unop_expr);
 }
@@ -123,7 +134,7 @@ void parse_tree_print(PARSE_TREE_NODE *p,
 {
   if (NULL != p) {
     IND(1);
-    printf("%s\n", node_type_names[GET_ORDINAL(p->nd_type)]);
+    printf("%s\n", parse_get_node_type_name(p->nd_type));
     if (HAS_ANY_TYPE(p->nd_type, NC_BINARY_OP)) {
       parse_print_binary_op(p, indent);
     } else if (HAS_ANY_TYPE(p->nd_type, NC_UNARY_OP)) {
