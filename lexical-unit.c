@@ -7,7 +7,9 @@ char *g_lex_unit_names[] ={
 
 
 
-char *lx_name(TAGGED_ENUM lx_type)
+char *lx_name(
+  TAGGED_ENUM lx_type
+)
 {
   char *result = "UNKNOWN_LEXICAL_TYPE";
   if (GET_ORDINAL(lx_type) < sizeof(g_lex_unit_names)/sizeof(char *)) {
@@ -18,7 +20,9 @@ char *lx_name(TAGGED_ENUM lx_type)
 
 
 
-void lx_print(LEX_UNIT *plx)
+void lx_print(
+  LEX_UNIT *plx
+)
 {
   printf("LEX_UNIT {\n");
   printf("  lx_line_n == %u\n", plx->lex_line_n);
@@ -42,7 +46,9 @@ void lx_print(LEX_UNIT *plx)
 
 
 
-void lx_skip_whitespace(GEN_READ *pinput)
+void lx_skip_whitespace(
+  GEN_READ *pinput
+)
 {
   char ch = 0;
   while (gr_get_char(pinput, &ch) && isspace(ch))
@@ -76,13 +82,21 @@ struct {
 
 
 
-typedef uint32_t (*LX_SCAN_FN)(GEN_READ *, LEX_UNIT *, STRTAB *);
+typedef TAGGED_ENUM (*LX_SCAN_FN)(
+  GEN_READ *,
+  LEX_UNIT *,
+  STRTAB *
+);
 
 
 
 // '!'  --> L_SUCH_THAT
 // '!!' --> L_GUARD
-TAGGED_ENUM lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_exclamation(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -104,7 +118,11 @@ TAGGED_ENUM lx_scan_exclamation(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab
 // L_NUMBER
 // Numeric syntax:
 // ['~']<digit>+['.'<digit>*][('e'|'E')['~']<digit>+]
-TAGGED_ENUM lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_number(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -160,7 +178,11 @@ TAGGED_ENUM lx_scan_number(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 
 
 // ':=' --> L_ASSIGN
-TAGGED_ENUM lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_assign(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -185,7 +207,11 @@ TAGGED_ENUM lx_scan_assign(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 // '<=' --> L_LE
 // '='  --> L_EQ
 // '<>' --> L_NE
-TAGGED_ENUM lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_relop(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -222,7 +248,10 @@ TAGGED_ENUM lx_scan_relop(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 
 // Return pointer to name in string table (pstrtab).
 // At least one character must remain to be pinput.
-char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
+char *lx_scan_generic_name(
+  GEN_READ *pinput,
+  STRTAB *pstrtab
+)
 {
   char name[MAX_STR];
   char ch;
@@ -250,7 +279,11 @@ char *lx_scan_generic_name(GEN_READ *pinput, STRTAB *pstrtab)
 
 
 
-TAGGED_ENUM lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_symbol(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char *pname = lx_scan_generic_name(pinput, pstrtab);
@@ -265,13 +298,18 @@ TAGGED_ENUM lx_scan_symbol(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 
 
 
-TAGGED_ENUM lx_scan_var_name_or_kw(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_var_name_or_kw(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char *pname = lx_scan_generic_name(pinput, pstrtab);
   if (NULL != pname) {
     int i;
-    for (i = 0; !STREQ(pname, g_keywords[i].kw_name) && !STREQ("", g_keywords[i].kw_name); ++i)
+    for (i = 0; !STREQ(pname, g_keywords[i].kw_name) &&
+           !STREQ("", g_keywords[i].kw_name); ++i)
       ;
     if (STREQ("", g_keywords[i].kw_name)) {
       plx->lex_pvar_name = pname;
@@ -398,7 +436,11 @@ struct {
 
 
 // Driver for various lexical unit scanners.
-TAGGED_ENUM lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
+TAGGED_ENUM lx_scan_next(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+)
 {
   TAGGED_ENUM retval = LX_UNKNOWN_CHAR;
   char ch;
@@ -425,7 +467,10 @@ TAGGED_ENUM lx_scan_next(GEN_READ *pinput, LEX_UNIT *plx, STRTAB *pstrtab)
 
 #if defined(TEST_LEX)
 
-int main(int argc, char **argv)
+int main(
+  int argc,
+  char **argv
+)
 {
   GEN_READ gr;
   LEX_UNIT lx;

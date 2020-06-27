@@ -6,7 +6,9 @@
 
 
 
-ARENA *stkalloc_new_arena(size_t arena_size)
+ARENA *stkalloc_new_arena(
+  size_t arena_size
+)
 {
   ARENA *retval;
   if (NULL != (retval = MALLOC_1(ARENA))) {
@@ -28,7 +30,9 @@ ARENA *stkalloc_new_arena(size_t arena_size)
 
 
 
-void *stkalloc_get_checkpoint(ARENA *par)
+void *stkalloc_get_checkpoint(
+  ARENA *par
+)
 {
   par->ar_n_checkpoints += 1;
   return par->ar_pnext;
@@ -36,7 +40,10 @@ void *stkalloc_get_checkpoint(ARENA *par)
 
 
 
-bool stkalloc_rollback(ARENA *par, void *chkpt)
+bool stkalloc_rollback(
+  ARENA *par,
+  void *chkpt
+)
 {
   bool retval = false;
   if (chkpt >= par->ar_pbase &&
@@ -51,7 +58,10 @@ bool stkalloc_rollback(ARENA *par, void *chkpt)
 
 
 
-void *stkalloc_get_mem(ARENA *par, size_t mem_size)
+void *stkalloc_get_mem(
+  ARENA *par,
+  size_t mem_size
+)
 {
   void *retval = NULL;
 #if 0
@@ -72,7 +82,9 @@ void *stkalloc_get_mem(ARENA *par, size_t mem_size)
 
 
 
-void *stkalloc_free_arena(ARENA *par)
+void *stkalloc_free_arena(
+  ARENA *par
+)
 {
   if (NULL != par->ar_pbase) {
     free(par->ar_pbase);
@@ -82,7 +94,9 @@ void *stkalloc_free_arena(ARENA *par)
 
 
 
-void stkalloc_print_stats(ARENA *par)
+void stkalloc_print_stats(
+  ARENA *par
+)
 {
   printf("ARENA: %p {\n", par);
   printf("           ar_size == %lu\n", par->ar_size);
@@ -129,7 +143,10 @@ void stkalloc_test(void)
 
 
 
-int main(int argc, char **argv)
+int main(
+  int argc,
+  char **argv
+)
 {
   stkalloc_test();
   return 0;

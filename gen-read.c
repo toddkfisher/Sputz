@@ -3,7 +3,10 @@
 
 
 // Initialize a GEN_READ to get characters from a string.
-bool gr_open_str(GEN_READ *r, char *s)
+bool gr_open_str(
+  GEN_READ *r,
+  char *s
+)
 {
   r->gr_type = I_STRING;
   r->gr_str = strdup(s);
@@ -19,7 +22,10 @@ bool gr_open_str(GEN_READ *r, char *s)
 
 
 // Initialize a GEN_READ to get characters from a FILE.
-bool gr_open_file(GEN_READ *r, char *pth)
+bool gr_open_file(
+  GEN_READ *r,
+  char *pth
+)
 {
   r->gr_type = I_FILE;
   r->gr_file = NULL;
@@ -34,7 +40,10 @@ bool gr_open_file(GEN_READ *r, char *pth)
 
 
 // Initialize a GEN_READ to get characters from GNU readline.
-bool gr_open_rdln(GEN_READ *r, char *prompt)
+bool gr_open_rdln(
+  GEN_READ *r,
+  char *prompt
+)
 {
   r->gr_type = I_READLINE;
   r->gr_rdlnp = r->gr_rdln = NULL;
@@ -54,7 +63,10 @@ bool gr_open_rdln(GEN_READ *r, char *prompt)
 
 // If GEN_READ r was initialized to input from GNU readline, then
 // set the prompt.
-void gr_set_prompt(GEN_READ *r, char *prompt)
+void gr_set_prompt(
+  GEN_READ *r,
+  char *prompt
+)
 {
   if (I_READLINE == r->gr_type) {
     if (NULL != r->gr_prompt) {
@@ -72,7 +84,10 @@ void gr_set_prompt(GEN_READ *r, char *prompt)
 // buffer then that will be returned.  End of file behavior for string inputs
 // is exactly the same as EOF behavior for FILEs.  EOF behavior for
 // GNU readline inputs occurs when NOTHING is typed on a line 'cept C-d.
-bool gr_get_char(GEN_READ *r, char *c)
+bool gr_get_char(
+  GEN_READ *r,
+  char *c
+)
 {
   bool retval = false;
   *c = EOF;
@@ -175,7 +190,10 @@ bool gr_get_char(GEN_READ *r, char *c)
 
 
 // Get the current position in input for later backup.
-bool gr_get_pos(GEN_READ *r, GEN_READ_POSITION *pos)
+bool gr_get_pos(
+  GEN_READ *r,
+  GEN_READ_POSITION *pos
+)
 {
   bool retval = true;
   pos->pos_type = r->gr_type;
@@ -197,7 +215,10 @@ bool gr_get_pos(GEN_READ *r, GEN_READ_POSITION *pos)
 
 
 // Return to a previously visited position on the input.
-bool gr_set_pos(GEN_READ *r, GEN_READ_POSITION *pos)
+bool gr_set_pos(
+  GEN_READ *r,
+  GEN_READ_POSITION *pos
+)
 {
   bool retval = true;
   if (r->gr_type != pos->pos_type) {
@@ -222,7 +243,9 @@ bool gr_set_pos(GEN_READ *r, GEN_READ_POSITION *pos)
 
 
 // Behave like feof() but for all input types.
-bool gr_eof(GEN_READ *r)
+bool gr_eof(
+  GEN_READ *r
+)
 {
   bool retval = false;
   switch (r->gr_type) {
@@ -247,7 +270,10 @@ bool gr_eof(GEN_READ *r)
 
 // Place a character onto the putback buffer (1 character) of GEN_READ r.
 // ALWAYS sets "end of file" condition to FALSE.
-void gr_putback_char(GEN_READ *r, char c)
+void gr_putback_char(
+  GEN_READ *r,
+  char c
+)
 {
   r->gr_eof = 0;
   r->gr_putback_ch = c;
@@ -261,7 +287,9 @@ void gr_putback_char(GEN_READ *r, char c)
 
 
 
-void gr_close(GEN_READ *r)
+void gr_close(
+  GEN_READ *r
+)
 {
   r->gr_putback_ch = 0;
   switch (r->gr_type) {
@@ -297,7 +325,11 @@ void gr_close(GEN_READ *r)
 
 
 // Initialize GEN_READ *r from command-line parameters passed in.
-void init_gr(char test_type, char *arg, GEN_READ *r)
+void init_gr(
+  char test_type,
+  char *arg,
+  GEN_READ *r
+)
 {
   switch (test_type) {
     case 'f':
@@ -329,7 +361,10 @@ void init_gr(char test_type, char *arg, GEN_READ *r)
 
 #ifdef TEST_INPUT
 
-int main(int argc, char **argv)
+int main(
+  int argc,
+  char **argv
+)
 {
   if (argc == 3 && (*argv[1] == 'f' || *argv[1] == 's' || *argv[1] == 'r')) {
     char c;

@@ -1,6 +1,8 @@
 #include "sputz-includes.h"
 
-STRTAB *strtab_new(ARENA *pmem)
+STRTAB *strtab_new(
+  ARENA *pmem
+)
 {
   STRTAB *result = NULL;
   uint32_t i;
@@ -17,7 +19,9 @@ STRTAB *strtab_new(ARENA *pmem)
 
 
 
-uint32_t strtab_hash(char *s)
+uint32_t strtab_hash(
+  char *s
+)
 {
   uint64_t n = 0;
   while (*s) {
@@ -28,7 +32,9 @@ uint32_t strtab_hash(char *s)
 
 
 
-STRREC *strtab_new_rec(STRTAB *st)
+STRREC *strtab_new_rec(
+  STRTAB *st
+)
 {
   STRREC *result = NULL;
   if (st->st_next_rec_idx < MAX_RECS) {
@@ -39,7 +45,10 @@ STRREC *strtab_new_rec(STRTAB *st)
 
 
 
-char *strtab_insert_string(STRTAB *st, char *str)
+char *strtab_insert_string(
+  STRTAB *st,
+  char *str
+)
 {
   uint32_t len;
   char *result = NULL;
@@ -54,7 +63,10 @@ char *strtab_insert_string(STRTAB *st, char *str)
 
 
 
-char *strtab_exists(STRTAB *st, char *s)
+char *strtab_exists(
+  STRTAB *st,
+  char *s
+)
 {
   uint32_t h;
   char *result = NULL;
@@ -71,7 +83,11 @@ char *strtab_exists(STRTAB *st, char *s)
 
 
 
-TAGGED_ENUM strtab_insert(STRTAB *st, char *s, char **ppstr)
+TAGGED_ENUM strtab_insert(
+  STRTAB *st,
+  char *s,
+  char **ppstr
+)
 {
   uint32_t h = strtab_hash(s);
   STRREC *pnewrec;
@@ -101,7 +117,9 @@ TAGGED_ENUM strtab_insert(STRTAB *st, char *s, char **ppstr)
 
 
 
-void strtab_print_stats(STRTAB *pstab)
+void strtab_print_stats(
+  STRTAB *pstab
+)
 {
   uint32_t avg_slot_count = 0;
   uint32_t n_filled_slots = 0;
@@ -157,7 +175,10 @@ char *inserted_pointer_list[N_STRINGS];
 
 
 
-int main(int argc, char **argv)
+int main(
+  int argc,
+  char **argv
+)
 {
   int i;
   ARENA *par;
