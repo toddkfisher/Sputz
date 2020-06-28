@@ -197,29 +197,6 @@ void parse_tree_print(
 
 
 
-// Reorder parse tree so that "(a - b - c) == ((a - b) - c) not (a - (b - c))"
-void parse_tree_left_assoc(
-  PARSE_TREE_NODE *np
-)
-{
-  if (NT_SUB_OP == np->nd_type && NT_SUB_OP == np->nd_binop_right_expr->nd_type) {
-    PARSE_TREE_NODE *a;
-    PARSE_TREE_NODE *b;
-    PARSE_TREE_NODE *c;
-    a = np->nd_binop_left_expr;
-    b = np->nd_binop_right_expr->nd_binop_left_expr;
-    c = np->nd_binop_right_expr->nd_binop_right_expr;
-    np->nd_binop_right_expr->nd_binop_left_expr = a;
-    np->nd_binop_right_expr->nd_binop_right_expr = b;
-    np->nd_binop_left_expr = np->nd_binop_right_expr;
-    np->nd_binop_right_expr = c;
-    parse_tree_left_assoc(np->nd_binop_left_expr);
-    parse_tree_left_assoc(np->nd_binop_right_expr);
-  }
-}
-
-
-
 // Not yet implemented.
 #define ERR_NYI(pstate)                                         \
   do {                                                          \
@@ -523,7 +500,9 @@ PARSE_TREE_NODE *parse_and_term(
     TAGGED_ENUM lx_rel_op = pstate->pst_lookahead.lex_type;
     TAGGED_ENUM nt_rel_op;
     // Skip relational operator
+    printf("Relational: %s\n", lx_name(lx_rel_op));
     parse_scan_lx_unit(pstate);
+    printf("Lexical unit following: %s\n", lx_name(pstate->pst_lookahead.lex_type));
     switch (lx_rel_op) {
       case L_GT:
         nt_rel_op = NT_GT_OP;
@@ -532,6 +511,7 @@ PARSE_TREE_NODE *parse_and_term(
         nt_rel_op = NT_GE_OP;
         break;
       case L_LT:
+        printf("case L_LT\n");
         nt_rel_op = NT_LT_OP;
         break;
       case L_LE:
