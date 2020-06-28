@@ -463,7 +463,6 @@ PARSE_TREE_NODE *parse_or_term(
 )
 {
   PARSE_TREE_NODE *result = NULL;
-  DBG_PRINT_FN;
   result = parse_and_term(pstate);
   while (L_AND_KW == pstate->pst_lookahead.lex_type) {
     PARSE_TREE_NODE *pleft = result;
@@ -484,25 +483,23 @@ PARSE_TREE_NODE *parse_and_term(
 )
 {
   PARSE_TREE_NODE *result = NULL;
-  DBG_PRINT_FN;
   bool negated = false;
+  uint32_t n_rel_ops = 0;
   if (L_NOT_KW == pstate->pst_lookahead.lex_type) {
     negated = true;
     // Skip 'not'
     parse_scan_lx_unit(pstate);
   }
   result = parse_compare_term(pstate);
-  printf("About to check for relational.\n");
-  if (HAS_ANY_TYPE(pstate->pst_lookahead.lex_type, LC_REL_OP)) {
-    printf("Relational found.\n");
+  while (HAS_ANY_TYPE(pstate->pst_lookahead.lex_type, LC_REL_OP)) {
+    n_rel_ops += 1;
     PARSE_TREE_NODE *pleft = result;
     PARSE_TREE_NODE *pright = NULL;
     TAGGED_ENUM lx_rel_op = pstate->pst_lookahead.lex_type;
     TAGGED_ENUM nt_rel_op;
+    fprintf(stderr, "Relational: %s\n", lx_name(lx_rel_op));
     // Skip relational operator
-    printf("Relational: %s\n", lx_name(lx_rel_op));
     parse_scan_lx_unit(pstate);
-    printf("Lexical unit following: %s\n", lx_name(pstate->pst_lookahead.lex_type));
     switch (lx_rel_op) {
       case L_GT:
         nt_rel_op = NT_GT_OP;
@@ -511,7 +508,6 @@ PARSE_TREE_NODE *parse_and_term(
         nt_rel_op = NT_GE_OP;
         break;
       case L_LT:
-        printf("case L_LT\n");
         nt_rel_op = NT_LT_OP;
         break;
       case L_LE:
@@ -526,6 +522,9 @@ PARSE_TREE_NODE *parse_and_term(
     }
     pright = parse_compare_term(pstate);
     result = parse_create_binop(nt_rel_op, pleft, pright, pstate);
+  }
+  if (n_rel_ops > 0) {
+    result = parse_create_unop(NT_CHAINED_RELOP, result, pstate);
   }
   if (negated) {
     result = parse_create_unop(NT_NOT_OP, result, pstate);
