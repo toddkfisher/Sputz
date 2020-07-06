@@ -3,7 +3,7 @@
 void zero_mem(
   void *p,
   size_t n
-)
+  )
 {
   explicit_bzero(p, n);
 }
@@ -13,7 +13,7 @@ void zero_mem(
 void print_summary_string(
   char *s,
   size_t length
-)
+  )
 {
   char buf[MAX_SUMMARY_LENGTH];
   size_t n = MIN(MAX_SUMMARY_LENGTH, length + 1);
@@ -35,7 +35,7 @@ void print_summary_string(
 
 static int blanks(
   char *s
-)
+  )
 {
   while (*s) {
     if (!isspace(*s++)) {

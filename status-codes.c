@@ -9,7 +9,7 @@ static char *g_status_code_names[] = {
 
 char *scode_name(
   TAGGED_ENUM code
-)
+  )
 {
   char *result = "UNKNOWN_STATUS_CODE";
   uint32_t code_ordinal = GET_ORDINAL(code);
@@ -23,7 +23,7 @@ char *scode_name(
 
 bool scode_is_error(
   TAGGED_ENUM code
-)
+  )
 {
   bool result = HAS_ANY_TYPE(code, SC_ERROR);
   return result;

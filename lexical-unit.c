@@ -9,7 +9,7 @@ char *g_lex_unit_names[] ={
 
 char *lx_name(
   TAGGED_ENUM lx_type
-)
+  )
 {
   char *result = "UNKNOWN_LEXICAL_TYPE";
   if (GET_ORDINAL(lx_type) < sizeof(g_lex_unit_names)/sizeof(char *)) {
@@ -22,12 +22,12 @@ char *lx_name(
 
 void lx_print(
   LEX_UNIT *plx
-)
+  )
 {
   printf("LEX_UNIT {\n");
   printf("  lx_line_n == %u\n", plx->lex_line_n);
   printf("  lx_col_n  == %u\n", plx->lex_col_n);
-  printf("  lx_type == %s,\n", g_lex_unit_names[plx->lex_type]);
+  printf("  lx_type == %s,\n", lx_name(plx->lex_type));
   switch (plx->lex_type) {
     case L_NUMBER:
       printf("  lx_number == %g,\n", plx->lex_number);
@@ -48,7 +48,7 @@ void lx_print(
 
 void lx_skip_whitespace(
   GEN_READ *pinput
-)
+  )
 {
   char ch = 0;
   while (gr_get_char(pinput, &ch) && isspace(ch))
@@ -86,7 +86,7 @@ typedef TAGGED_ENUM (*LX_SCAN_FN)(
   GEN_READ *,
   LEX_UNIT *,
   STRTAB *
-);
+  );
 
 
 
@@ -96,7 +96,7 @@ TAGGED_ENUM lx_scan_exclamation(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -122,7 +122,7 @@ TAGGED_ENUM lx_scan_number(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -177,24 +177,29 @@ TAGGED_ENUM lx_scan_number(
 
 
 
-// ':=' --> L_ASSIGN
-TAGGED_ENUM lx_scan_assign(
+// '=>' --> L_ASSIGN
+// '=' --> L_EQ
+TAGGED_ENUM lx_scan_eq_or_assign(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
-  // skip over ':'
+  // skip over '='
   gr_get_char(pinput, &ch);
-  if (gr_eof(pinput) || !gr_get_char(pinput, &ch)) {
-    result = LX_UNKNOWN_CHAR;
-  } else if ('=' == ch) {
-    plx->lex_type = L_ASSIGN;
+  if (gr_eof(pinput)) {
+    plx->lex_type = L_EQ;
   } else {
-    result = LX_UNKNOWN_CHAR;
-    gr_putback_char(pinput, ch);
+    if (!gr_get_char(pinput, &ch)) {
+      result = S_LEX_ERROR;
+    } else if ('>' == ch) {
+      plx->lex_type = L_ASSIGN;
+    } else {
+      plx->lex_type = L_EQ;
+      gr_putback_char(pinput, ch);
+    }
   }
   return result;
 }
@@ -211,7 +216,7 @@ TAGGED_ENUM lx_scan_relop(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char ch;
@@ -234,9 +239,6 @@ TAGGED_ENUM lx_scan_relop(
         gr_putback_char(pinput, next_ch);
       }
       break;
-    case '=':
-      plx->lex_type = L_EQ;
-      break;
     default:
       result = LX_UNKNOWN_CHAR;
       break;
@@ -251,7 +253,7 @@ TAGGED_ENUM lx_scan_relop(
 char *lx_scan_generic_name(
   GEN_READ *pinput,
   STRTAB *pstrtab
-)
+  )
 {
   char name[MAX_STR];
   char ch;
@@ -283,7 +285,7 @@ TAGGED_ENUM lx_scan_symbol(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char *pname = lx_scan_generic_name(pinput, pstrtab);
@@ -298,11 +300,38 @@ TAGGED_ENUM lx_scan_symbol(
 
 
 
+TAGGED_ENUM lx_scan_minus_or_result(
+  GEN_READ *pinput,
+  LEX_UNIT *plx,
+  STRTAB *pstrtab
+  )
+{
+  TAGGED_ENUM result = LX_SCAN_OK;
+  char ch;
+  // Skip over '-'
+  gr_get_char(pinput, &ch);
+  if (gr_eof(pinput)) {
+    plx->lex_type = L_MINUS;
+  } else {
+    if (!gr_get_char(pinput, &ch)) {
+      result = S_LEX_ERROR;
+    } else if ('>' == ch) {
+      plx->lex_type = L_RESULT;
+    } else {
+      plx->lex_type = L_MINUS;
+      gr_putback_char(pinput, ch);
+    }
+  }
+  return result;
+}
+
+
+
 TAGGED_ENUM lx_scan_var_name_or_kw(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM result = LX_SCAN_OK;
   char *pname = lx_scan_generic_name(pinput, pstrtab);
@@ -337,100 +366,100 @@ struct {
     LX_SCAN_FN scanfn;
   };
 } g_scan_map[] = {
-    ['!' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_exclamation    },
-    ['"' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['#' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['$' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['%' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_MOD           },
-    ['&' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['\'' - '!'] =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['(' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_LPAREN        },
-    [')' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_RPAREN        },
-    ['*' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_TIMES         },
-    ['+' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_PLUS          },
-    [',' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_TUPLECAT      },
-    ['-' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_MINUS         },
-    ['.' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['/' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_DIVIDE        },
-    ['0' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['1' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['2' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['3' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['4' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['5' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['6' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['7' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['8' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    ['9' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         },
-    [':' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_assign         },
-    [';' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_SEQ           },
-    ['<' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop          },
-    ['=' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop          },
-    ['>' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop          },
-    ['?' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['@' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['A' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['B' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['C' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['D' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['E' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['F' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['G' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['H' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['I' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['J' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['K' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['L' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['M' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['N' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['O' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['P' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['Q' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['R' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['S' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['T' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['U' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['V' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['W' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['X' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['Y' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['Z' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol         },
-    ['[' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['\\' - '!'] =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    [']' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       },
-    ['^' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN       } ,
-    ['_' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['`' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_CLOSUREIZE    },
-    ['a' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['b' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['c' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['d' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['e' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['f' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['g' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['h' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['i' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['j' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['k' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['l' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['m' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['n' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['o' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['p' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['q' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['r' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['s' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['t' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['u' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['v' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['w' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['x' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['y' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['z' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw },
-    ['{' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_FN_BEGIN      },
-    ['|' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_PATTERN_ALT   },
-    ['}' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_FN_END        },
-    ['~' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number         }
+  ['!' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_exclamation      },
+  ['"' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['#' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['$' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['%' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_MOD             },
+  ['&' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['\'' - '!'] =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['(' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_LPAREN          },
+  [')' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_RPAREN          },
+  ['*' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_TIMES           },
+  ['+' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_PLUS            },
+  [',' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_TUPLECAT        },
+  ['-' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_minus_or_result  },
+  ['.' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['/' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_DIVIDE          },
+  ['0' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['1' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['2' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['3' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['4' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['5' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['6' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['7' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['8' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  ['9' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           },
+  [':' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  [';' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_SEQ             },
+  ['<' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop            },
+  ['=' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_eq_or_assign     },
+  ['>' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_relop            },
+  ['?' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['@' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['A' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['B' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['C' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['D' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['E' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['F' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['G' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['H' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['I' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['J' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['K' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['L' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['M' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['N' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['O' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['P' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['Q' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['R' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['S' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['T' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['U' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['V' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['W' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['X' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['Y' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['Z' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_symbol           },
+  ['[' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['\\' - '!'] =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  [']' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['^' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_UNKNOWN         },
+  ['_' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['`' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_CLOSUREIZE      },
+  ['a' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['b' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['c' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['d' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['e' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['f' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['g' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['h' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['i' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['j' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['k' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['l' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['m' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['n' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['o' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['p' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['q' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['r' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['s' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['t' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['u' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['v' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['w' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['x' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['y' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['z' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_var_name_or_kw   },
+  ['{' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_FN_BEGIN        },
+  ['|' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_PATTERN_ALT     },
+  ['}' - '!']  =  { .is_multi_char = false, .lex_unit_code = L_FN_END          },
+  ['~' - '!']  =  { .is_multi_char = true,  .scanfn = lx_scan_number           }
 };
 
 
@@ -440,7 +469,7 @@ TAGGED_ENUM lx_scan_next(
   GEN_READ *pinput,
   LEX_UNIT *plx,
   STRTAB *pstrtab
-)
+  )
 {
   TAGGED_ENUM retval = LX_UNKNOWN_CHAR;
   char ch;
@@ -466,18 +495,18 @@ TAGGED_ENUM lx_scan_next(
 
 
 #if defined(TEST_LEX)
-
 int main(
   int argc,
   char **argv
-)
+  )
 {
   GEN_READ gr;
   LEX_UNIT lx;
   ARENA *pmem = stkalloc_new_arena(MIB(10));
   STRTAB *pstrtab = strtab_new(pmem);
   init_gr(*argv[1], argv[2], &gr);
-  while (LX_SCAN_OK == lx_scan_next(&gr, &lx, pstrtab)) {
+  while ((LX_SCAN_OK == lx_scan_next(&gr, &lx, pstrtab)) &&
+         (L_EOF != lx.lex_type)) {
     lx_print(&lx);
   }
   gr_close(&gr);

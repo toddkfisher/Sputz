@@ -7,18 +7,18 @@ char *g_node_type_names[] = {
 
 #define INDENT_SPACES 2
 
-#define IND(n)                               \
-  do {                                       \
-    for (int i = 0; i < indent*(n); ++i) {   \
-      printf(" ");                           \
-    }                                        \
+#define IND(n)                                  \
+  do {                                          \
+    for (int i = 0; i < indent*(n); ++i) {      \
+      printf(" ");                              \
+    }                                           \
   } while (0)
 
 
 
 char *parse_get_node_type_name(
   TAGGED_ENUM pt_type
-)
+  )
 {
   char *result = "UNKNOWN_NODE_TYPE";
   if (GET_ORDINAL(pt_type) < sizeof(g_node_type_names)/sizeof(char *)) {
@@ -32,7 +32,7 @@ char *parse_get_node_type_name(
 void parse_print_binary_op(
   PARSE_TREE_NODE *p,
   uint8_t indent
-)
+  )
 {
   IND(1);
   printf("-left_expr:\n");
@@ -49,7 +49,7 @@ void parse_print_binary_op(
 void parse_print_unary_op(
   PARSE_TREE_NODE *p,
   uint8_t indent
-)
+  )
 {
   IND(1);
   printf("-unop_expr:\n");
@@ -66,7 +66,7 @@ void parse_print_unary_op(
 
 void parse_tree_dot_binary_op(
   PARSE_TREE_NODE *p
-)
+  )
 {
   char dot_name_left[MAX_STR];
   char dot_name_right[MAX_STR];
@@ -75,9 +75,9 @@ void parse_tree_dot_binary_op(
   GET_DOT_NODE_NAME(dot_name_right, p->nd_binop_right_expr);
   GET_DOT_NODE_NAME(dot_name_node, p);
   // N563 [shape=record, label="{ordered choice|{<left>left|<right>right|}}"];
- printf("%s [shape=record, label=\"{%s|{<left>left|<right>right}}\"];\n",
-        dot_name_node,
-        parse_get_node_type_name(p->nd_type));
+  printf("%s [shape=record, label=\"{%s|{<left>left|<right>right}}\"];\n",
+         dot_name_node,
+         parse_get_node_type_name(p->nd_type));
   printf("%s:left -> %s;\n", dot_name_node, dot_name_left);
   printf("%s:right -> %s;\n", dot_name_node, dot_name_right);
   parse_tree_node_to_dot(p->nd_binop_left_expr);
@@ -88,7 +88,7 @@ void parse_tree_dot_binary_op(
 
 void parse_tree_dot_unary_op(
   PARSE_TREE_NODE *p
-)
+  )
 {
   char dot_name_node[MAX_STR];
   char dot_name_expr[MAX_STR];
@@ -105,7 +105,7 @@ void parse_tree_dot_unary_op(
 
 void parse_tree_node_to_dot(
   PARSE_TREE_NODE *p
-)
+  )
 {
   char dot_name[MAX_STR];
   if (HAS_ANY_TYPE(p->nd_type, NC_BINARY_OP)) {
@@ -124,6 +124,8 @@ void parse_tree_node_to_dot(
                p->nd_num_const);
         break;
       case NT_IF:
+        //GET_DOT_NODE_NAME(dot_name, p);
+        //printf("%s [shape=record, label=\"%s\"];\n",,
         break;
       default:
         break;
@@ -135,7 +137,7 @@ void parse_tree_node_to_dot(
 
 void parse_tree_to_dot(
   PARSE_TREE_NODE *p
-)
+  )
 {
   printf("digraph sputz_parse_tree {\n");
   parse_tree_node_to_dot(p);
@@ -147,7 +149,7 @@ void parse_tree_to_dot(
 void parse_tree_print(
   PARSE_TREE_NODE *p,
   uint8_t indent
-)
+  )
 {
   if (NULL != p) {
     IND(1);
@@ -210,7 +212,7 @@ void parse_tree_print(
 // Scan the next lexical unit and store in PARSE_STATE
 void parse_scan_lx_unit(
   PARSE_STATE *pstate
-)
+  )
 {
   uint32_t lex_return_code;
   if (LX_SCAN_OK != (lex_return_code = lx_scan_next(&pstate->pst_input,
@@ -230,7 +232,7 @@ void parse_scan_lx_unit(
 
 PARSE_TREE_NODE *parse_alloc_node(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *p;
   p = stkalloc_get_mem(pstate->pst_pmem,
@@ -251,7 +253,7 @@ PARSE_TREE_NODE *parse_alloc_node(
 void parse_expect(
   TAGGED_ENUM lx_type,
   PARSE_STATE *pstate
-)
+  )
 {
   if(lx_type != pstate->pst_lookahead.lex_type) {
     pstate->pst_status = S_LEX_ERROR;
@@ -270,7 +272,7 @@ void parse_expect(
 void parse_expect_and_skip(
   TAGGED_ENUM lx_type,
   PARSE_STATE *pstate
-)
+  )
 {
   parse_expect(lx_type, pstate);
   parse_scan_lx_unit(pstate);
@@ -283,7 +285,7 @@ PARSE_TREE_NODE *parse_create_binop(
   PARSE_TREE_NODE *pleft,
   PARSE_TREE_NODE *pright,
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result;
   result = parse_alloc_node(pstate);
@@ -313,7 +315,7 @@ PARSE_TREE_NODE *parse_create_unop(
 // Parser entry point.
 PARSE_TREE_NODE *parse_sputz_program(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   result = parse_seq_expr(pstate);
@@ -326,7 +328,7 @@ PARSE_TREE_NODE *parse_sputz_program(
 // seq-expr =  expr [';' seq-expr]
 PARSE_TREE_NODE *parse_seq_expr(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   result = parse_expr(pstate);
@@ -346,7 +348,7 @@ PARSE_TREE_NODE *parse_seq_expr(
 // expr = ifExpr | valueExpr | assignExpr
 PARSE_TREE_NODE *parse_expr(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   if (L_IF_KW == pstate->pst_lookahead.lex_type) {
@@ -364,7 +366,7 @@ PARSE_TREE_NODE *parse_expr(
 // assignExpr = varName ':=' tupleExpr
 PARSE_TREE_NODE *parse_assign_expr(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   PARSE_TREE_NODE *expr = NULL;
@@ -386,7 +388,7 @@ PARSE_TREE_NODE *parse_assign_expr(
 // ifExpr = 'if' tupleExpr 'then' expr 'else' expr
 PARSE_TREE_NODE *parse_if_expr(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   parse_expect_and_skip(L_IF_KW, pstate);
@@ -394,9 +396,9 @@ PARSE_TREE_NODE *parse_if_expr(
   result->nd_type = NT_IF;
   result->nd_if_test = parse_tuple_expr(pstate);
   parse_expect_and_skip(L_THEN_KW, pstate);
-  result->nd_if_then_branch = parse_tuple_expr(pstate);
+  result->nd_if_then_branch = parse_expr(pstate);
   parse_expect_and_skip(L_ELSE_KW, pstate);
-  result->nd_if_else_branch = parse_tuple_expr(pstate);
+  result->nd_if_else_branch = parse_expr(pstate);
   return result;
 }
 
@@ -405,7 +407,7 @@ PARSE_TREE_NODE *parse_if_expr(
 // valueExpr = 'valueis' tupleExpr
 PARSE_TREE_NODE *parse_value_expr(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   PARSE_TREE_NODE *puexpr = NULL;
@@ -537,7 +539,7 @@ PARSE_TREE_NODE *parse_and_term(
 // compareTerm = term (addOp term)*
 PARSE_TREE_NODE *parse_compare_term(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = parse_number(pstate);
   return result;
@@ -547,7 +549,7 @@ PARSE_TREE_NODE *parse_compare_term(
 
 PARSE_TREE_NODE *parse_term(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -558,7 +560,7 @@ PARSE_TREE_NODE *parse_term(
 
 PARSE_TREE_NODE *parse_factor(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -569,7 +571,7 @@ PARSE_TREE_NODE *parse_factor(
 
 PARSE_TREE_NODE *parse_number(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   parse_expect(L_NUMBER, pstate);
@@ -585,7 +587,7 @@ PARSE_TREE_NODE *parse_number(
 
 PARSE_TREE_NODE *parse_symbol(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -596,7 +598,7 @@ PARSE_TREE_NODE *parse_symbol(
 
 PARSE_TREE_NODE *parse_var_name(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -607,7 +609,7 @@ PARSE_TREE_NODE *parse_var_name(
 
 PARSE_TREE_NODE *parse_data_constructor(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -618,7 +620,7 @@ PARSE_TREE_NODE *parse_data_constructor(
 
 PARSE_TREE_NODE *parse_application(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -629,7 +631,7 @@ PARSE_TREE_NODE *parse_application(
 
 PARSE_TREE_NODE *parse_closure(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -640,7 +642,7 @@ PARSE_TREE_NODE *parse_closure(
 
 PARSE_TREE_NODE *parse_pattern_alternative(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -651,7 +653,7 @@ PARSE_TREE_NODE *parse_pattern_alternative(
 
 PARSE_TREE_NODE *parse_pattern_tuple(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -662,7 +664,7 @@ PARSE_TREE_NODE *parse_pattern_tuple(
 
 PARSE_TREE_NODE *parse_pattern_tuple_component(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -673,7 +675,7 @@ PARSE_TREE_NODE *parse_pattern_tuple_component(
 
 PARSE_TREE_NODE *parse_pattern_factor(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -684,7 +686,7 @@ PARSE_TREE_NODE *parse_pattern_factor(
 
 PARSE_TREE_NODE *parse_pattern_data_constructor(
   PARSE_STATE *pstate
-)
+  )
 {
   PARSE_TREE_NODE *result = NULL;
   ERR_NYI(pstate);
@@ -699,7 +701,7 @@ TAGGED_ENUM parse_init(
   char *arg,
   ARENA **ppmem,
   STRTAB **ppstrtab
-)
+  )
 {
   TAGGED_ENUM result = S_OK;
   // init_gr() is temporary here so don't check for errors when calling it.
@@ -728,7 +730,7 @@ TAGGED_ENUM parse_init(
 
 void parse_fin(
   PARSE_STATE *pstate
-)
+  )
 {
   gr_close(&pstate->pst_input);
   pstate->pst_status = S_OK;
@@ -746,7 +748,7 @@ void parse_fin(
 int main(
   int argc,
   char **argv
-)
+  )
 {
   GEN_READ gr;
   PARSE_STATE pstate;

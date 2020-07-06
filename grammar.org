@@ -9,7 +9,7 @@
   ‖ resultExpr \\
   ‖ assignExpr
 ** assignExpr
-  varName *:=* tupleExpr
+  tupleExpr [*=>* patternTuple]
 ** ifExpr
   *if* assignExpr *then* assignExpr *else* assignExpr
 ** valueExpr
@@ -51,7 +51,7 @@
 ** closure
   *{* ( (*|* patternAlternative)* ‖ seqExpr) *}*
 ** patternAlternative
-  patternTuple [*!!* guard] *=>* seqExpr
+  patternTuple [*!!* guard] *->* seqExpr
 ** patternTuple
   [ patternTupleComponent (*,* patternTupleComponent)* ]
 ** patternTupleComponent

@@ -6,7 +6,7 @@ expr                   = ifExpr
                        | resultExpr
                        | assignExpr
 
-assignExpr             = varName ':=' tupleExpr
+assignExpr             = tupleExpr ':=' patternTuple
 
 ifExpr                 = 'if' assignExpr 'then' assignExpr 'else' assignExpr
 
