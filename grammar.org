@@ -10,10 +10,9 @@
   ‖ assignExpr
 ** assignExpr
   tupleExpr [*=>* patternTuple]
+  For now just parse: tupleExpr [*=>* patternTuple]
 ** ifExpr
   *if* assignExpr *then* assignExpr *else* assignExpr
-** valueExpr
-  *value* tupleExpr
 ** tupleEpxr
   tupleComponent (tupleCatOp tupleComponent )*
 ** tupleComponent
@@ -29,7 +28,7 @@
 ** factor
   basicFactor  (*(* [tupleExpr] *)*)*
 ** basicFactor
-  ((*outer*)*  varName   \\
+     varRef              \\
    ‖ number              \\
    ‖ symbol              \\
    ‖ dataConstructor     \\
@@ -38,6 +37,8 @@
    ‖ *(* seqExpr *)*     \\
    ‖ *~* *(* seqExpr *)* \\
   )
+** varRef
+   (*outer*)*  varName
 ** number
   [*~*]digit+[*.* digit+ ][(*e*‖*E*) [*~*] digit+]
 ** symbol

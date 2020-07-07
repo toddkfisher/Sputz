@@ -40,10 +40,10 @@ struct PARSE_TREE_NODE {
       PARSE_TREE_NODE **nd_patt_result_array;
     };
     // NT_CLOSUREIZE
-    uint32_t nd_closureize_token;
+    TAGGED_ENUM nd_closureize_token;
     // NT_ASSIGN_OP
     struct {
-      char *nd_assign_var_name;
+      PARSE_TREE_NODE *nd_assign_target;
       PARSE_TREE_NODE *nd_assign_expr;
     };
     // NT_VAR_REF
