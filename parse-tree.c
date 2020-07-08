@@ -95,10 +95,29 @@ void parse_tree_dot_unary_op(
   GET_DOT_NODE_NAME(dot_name_expr, p->nd_unop_expr);
   GET_DOT_NODE_NAME(dot_name_node, p);
   printf("%s [shape=record, label=\"{%s|{<expr>expr}}\"];\n",
-         dot_name_node,
-         parse_get_node_type_name(p->nd_type));
+         dot_name_node, parse_get_node_type_name(p->nd_type));
   printf("%s:expr -> %s;\n", dot_name_node, dot_name_expr);
   parse_tree_node_to_dot(p->nd_unop_expr);
+}
+
+
+
+void parse_tree_dot_assign(
+  PARSE_TREE_NODE *p
+)
+{
+  char dot_name_assign_target[MAX_STR];
+  char dot_name_assign_expr[MAX_STR];
+  char dot_name_node[MAX_STR];
+  GET_DOT_NODE_NAME(dot_name_assign_target, p->nd_assign_target);
+  GET_DOT_NODE_NAME(dot_name_assign_expr, p->nd_assign_expr);
+  GET_DOT_NODE_NAME(dot_name_node, p);
+  printf("%s [shape=record, label=\"{%s|{<expr>expr|<target>target}}\"];\n",
+         dot_name_node, parse_get_node_type_name(p->nd_type));
+  printf("%s:expr -> %s;\n", dot_name_node, dot_name_assign_expr);
+  printf("%s:target -> %s;\n", dot_name_node, dot_name_assign_target);
+  parse_tree_node_to_dot(p->nd_assign_expr);
+  parse_tree_node_to_dot(p->nd_assign_target);
 }
 
 
@@ -115,6 +134,7 @@ void parse_tree_node_to_dot(
   } else {
     switch (p->nd_type) {
       case NT_ASSIGN_OP:
+        parse_tree_dot_assign(p);
         break;
       case NT_NUM_CONST:
       case NT_PATT_NUM_CONST:
@@ -127,6 +147,11 @@ void parse_tree_node_to_dot(
         //GET_DOT_NODE_NAME(dot_name, p);
         //printf("%s [shape=record, label=\"%s\"];\n",,
         break;
+      case NT_VAR_REF:
+        GET_DOT_NODE_NAME(dot_name, p);
+        printf("%s [shape=record, label=\"{%s|{outer*%u|%s}}\"];\n",
+               dot_name, parse_get_node_type_name(p->nd_type),
+               p->nd_outer_count, p->nd_pvar_name);
       default:
         break;
     }

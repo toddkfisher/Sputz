@@ -50,7 +50,7 @@ struct PARSE_TREE_NODE {
     // NT_PATT_VAR_REF
     struct {
       // I wonder if anyone will write 'outer' more than 4294967296 times?
-      uint32_t nd_outer_count;
+      uint16_t nd_outer_count;
       char *nd_pvar_name;
     };
     // NT_NUM_CONST
