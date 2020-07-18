@@ -21,3 +21,6 @@ tst
 dump.*
 grammar.pdf
 *.out
+enum-PT.h
+enum-L.h
+enum-status-codes.h
