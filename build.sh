@@ -1,6 +1,12 @@
 #!/bin/sh
 CMD_LINE_DEFINES="-DDEBUG -DTEST_PARSE"
 echo "Common #defines: " ${CMD_LINE_DEFINES}
+echo "Creating enum-status-codes.h"
+m4 enum-status-codes.m4 > enum-status-codes.h
+echo "Creating enum-L.h"
+m4 enum-L.m4 > enum-L.h
+echo "Creating enum-PT.h"
+m4 enum-PT.m4 > enum-PT.h
 echo "Generating: prototypes.h"
 cproto util.c status-codes.c stackalloc.c strtab.c gen-read.c lexical-unit.c parse-tree.c > prototypes.h
 echo "Compiling: gen-read.c"
