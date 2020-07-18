@@ -19,3 +19,5 @@ tst
 *.html
 *conflicted copy*
 dump.*
+grammar.pdf
+*.out

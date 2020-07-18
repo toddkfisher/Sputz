@@ -10,7 +10,7 @@
   ‖ assignExpr
 ** assignExpr
   tupleExpr [*=>* patternTuple]
-  For now just parse: tupleExpr [*=>* patternTuple]
+  For now just parse: tupleExpr [*=>* varRef]
 ** ifExpr
   *if* assignExpr *then* assignExpr *else* assignExpr
 ** tupleEpxr

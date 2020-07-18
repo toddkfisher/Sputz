@@ -382,8 +382,6 @@ PARSE_TREE_NODE *parse_expr(
   PARSE_TREE_NODE *result = NULL;
   if (L_IF_KW == pstate->pst_lookahead.lex_type) {
     result = parse_if_expr(pstate);
-  } else if (L_VALUE_KW == pstate->pst_lookahead.lex_type) {
-    result = parse_value_expr(pstate);
   } else {
     result = parse_assign_expr(pstate);
   }
@@ -392,7 +390,7 @@ PARSE_TREE_NODE *parse_expr(
 
 
 
-// assignExpr =
+// assignExpr = tupleExpr [*=>* patternTuple]
 PARSE_TREE_NODE *parse_assign_expr(
   PARSE_STATE *pstate
 )
@@ -407,6 +405,7 @@ PARSE_TREE_NODE *parse_assign_expr(
     result->nd_assign_expr = passign_expr;
     // Skip "=>"
     parse_scan_lx_unit(pstate);
+    // Assign target will be a patternTuple in the future.
     result->nd_assign_target = parse_var_ref(pstate);
   }
   return result;
@@ -428,21 +427,6 @@ PARSE_TREE_NODE *parse_if_expr(
   result->nd_if_then_branch = parse_expr(pstate);
   parse_expect_and_skip(L_ELSE_KW, pstate);
   result->nd_if_else_branch = parse_expr(pstate);
-  return result;
-}
-
-
-
-// valueExpr = 'valueis' tupleExpr
-PARSE_TREE_NODE *parse_value_expr(
-  PARSE_STATE *pstate
-)
-{
-  PARSE_TREE_NODE *result = NULL;
-  PARSE_TREE_NODE *puexpr = NULL;
-  parse_expect_and_skip(L_VALUE_KW, pstate);
-  puexpr = parse_tuple_expr(pstate);
-  result = parse_create_unop(NT_VALUE, puexpr, pstate);
   return result;
 }
 
@@ -565,12 +549,28 @@ PARSE_TREE_NODE *parse_and_term(
 
 
 
+// LEFT OFF HERE
 // compareTerm = term (addOp term)*
 PARSE_TREE_NODE *parse_compare_term(
   PARSE_STATE *pstate
 )
 {
-  PARSE_TREE_NODE *result = parse_number(pstate);
+  PARSE_TREE_NODE *result = parse_term(pstate);
+  while (HAS_ANY_TYPE(pstate->pst_lookahead.lex_type, LC_ADD_OP)) {
+    PARSE_TREE_NODE *left = parse_alloc_node(pstate);
+    switch (pstate->pst_lookahead.lex_type) {
+      case L_PLUS:
+        left->nd_type = NT_ADD_OP;
+        break;
+      case L_MINUS:
+        left->nd_type = NT_SUB_OP;
+        break;
+    }
+    left->nd_binop_left_expr = result;
+    result = left;
+    parse_scan_lx_unit(pstate);
+    result->nd_binop_right_expr = parse_term(pstate);
+  }
   return result;
 }
 
@@ -580,8 +580,23 @@ PARSE_TREE_NODE *parse_term(
   PARSE_STATE *pstate
 )
 {
-  PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
+  PARSE_TREE_NODE *result = parse_factor(pstate);
+  while (HAS_ANY_TYPE(pstate->pst_lookahead.lex_type, LC_MUL_OP)) {
+    PARSE_TREE_NODE *left = result;
+    result = parse_alloc_node(pstate);
+    result->nd_binop_left_expr = left;
+    switch (pstate->pst_lookahead.lex_type) {
+      case L_TIMES:
+        result->nd_type = NT_MUL_OP;
+        break;
+      case L_DIVIDE:
+        result->nd_type = NT_DIV_OP;
+        break;
+        // TODO: mod and power (power has higher precedence)
+    }
+    parse_scan_lx_unit(pstate);
+    result->nd_binop_right_expr = parse_factor(pstate);
+  }
   return result;
 }
 
@@ -592,7 +607,7 @@ PARSE_TREE_NODE *parse_factor(
 )
 {
   PARSE_TREE_NODE *result = NULL;
-  ERR_NYI(pstate);
+  return parse_number(pstate);
   return result;
 }
 
